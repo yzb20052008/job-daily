@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.job.mapper.JobPostMapper">
+    <select id="getPostMapList" resultType="map">
+        select jp.id as id,jp.title as title,jp.user_id as userId,jp.settlement_type as settlementType,jp.type_ids as typeIds,
+        jp.type_names as typeNames,jp.start_time as startTime,jp.end_time as endTime,jp.close_time as closeTime,jp.sex_require as sexRequire,
+        jp.age_require as ageRequire,jp.recruits_number as recruitsNumber,jp.address_name as addressName,jp.address as address,jp.longitude as longitude,
+        jp.phone as phone,jp.descr as descr,jp.pricing_mode as pricingMode,jp.salary as salary,jp.salary_unit as salaryUnit,
+        jp.job_requires as jobRequires,jp.video_url as videoUrl,jp.img_url as imgUrl,jp.if_call as ifCall,jp.browse_number as browseNumber,
+        jp.if_topping as ifTopping,jp.if_bold as ifBold,jp.post_status as postStatus,jp.create_time as createTime,jp.post_source as postSource,
+        jp.city as city,jp.p_city as pCity,
+        su.nickname as userName,su.phone as userPhone,su.avatar as userAvatar,
+        ( 6371* acos( cos( radians(#{params.latitude}) ) * cos( radians( jp.latitude ) ) * cos( radians(
+        jp.longitude ) - radians(#{params.longitude}) ) + sin( radians(#{params.latitude}) ) * sin(
+        radians( jp.latitude ) ) ) )
+        AS distance,jc.real_name as companyName,ura.realname as realName
+        from job_post jp
+        left JOIN sys_user su ON su.id = jp.user_id
+        LEFT JOIN job_company jc on jc.user_id=jp.user_id and jc.auth_status = 1
+        LEFT JOIN ums_realname_auth ura on ura.user_id = jp.user_id and ura.auth_status =1
+        WHERE 1=1 and su.status = '1'
+        <if test="params != null">
+            <if test="params.postStatus != null">
+                AND jp.post_status = #{params.postStatus}
+            </if>
+            <if test="params.typeIds != null and params.typeIds != ''">
+                AND jp.type_ids regexp CONCAT('(^|,)(',#{params.typeIds},')(,|$)')
+            </if>
+            <if test="params.typeCodes != null and params.typeCodes != ''">
+                and (
+                jp.type_codes like CONCAT(#{params.typeCodes},'%')
+                or jp.type_codes like CONCAT('%,',#{params.typeCodes},'%')
+                )
+            </if>
+            <if test="params.cityCode != null and params.cityCode != ''">
+                AND jp.city_code = #{params.cityCode}
+            </if>
+            <if test="params.pCityCode != null and params.pCityCode != ''">
+                AND jp.p_city_code = #{params.pCityCode}
+            </if>
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (jp.descr like CONCAT('%',#{params.keyword},'%')
+                or jp.title like CONCAT('%',#{params.keyword},'%')
+                or jp.type_names like CONCAT('%',#{params.keyword},'%')
+                or su.phone like CONCAT('%',#{params.keyword},'%')
+                or su.realname like CONCAT('%',#{params.keyword},'%')
+                )
+            </if>
+            <if test="params.orderBy=='new'">
+                order by jp.create_time desc
+            </if>
+            <if test="params.orderBy=='near'">
+                order by distance asc, jp.create_time desc
+            </if>
+            <if test="params.orderBy=='all'">
+                order by jp.create_time desc
+            </if>
+        </if>
+    </select>
+
+    <select id="getPostMapListForAdmin" resultType="map">
+        select jp.id as id,jp.title as title,jp.user_id as userId,jp.settlement_type as settlementType,jp.type_ids as typeIds,
+        jp.type_names as typeNames,jp.start_time as startTime,jp.end_time as endTime,jp.close_time as closeTime,jp.sex_require as sexRequire,
+        jp.age_require as ageRequire,jp.recruits_number as recruitsNumber,jp.address_name as addressName,jp.address as address,jp.longitude as longitude,jp.latitude as latitude,
+        jp.phone as phone,jp.name as name,jp.descr as descr,jp.pricing_mode as pricingMode,jp.salary as salary,jp.salary_unit as salaryUnit,
+        jp.job_requires as jobRequires,jp.video_url as videoUrl,jp.img_url as imgUrl,jp.if_call as ifCall,jp.browse_number as browseNumber,
+        jp.if_topping as ifTopping,jp.if_bold as ifBold,jp.post_status as postStatus,jp.create_time as createTime,jp.post_source as postSource,
+        jp.city as city,jp.p_city as pCity,
+        su.nickname as userName,su.phone as userPhone,su.avatar as userAvatar,jc.real_name as companyName,ura.realname as realName
+        from job_post jp
+        left JOIN sys_user su ON su.id = jp.user_id
+        LEFT JOIN job_company jc on jc.user_id=jp.user_id and jc.auth_status = 1
+        LEFT JOIN ums_realname_auth ura on ura.user_id = jp.user_id and ura.auth_status =1
+        WHERE 1=1 and su.status = '1'
+        <if test="params != null">
+            <if test="params.postStatus != null">
+                AND jp.post_status = #{params.postStatus}
+            </if>
+            <if test="params.typeIds != null and params.typeIds != ''">
+                AND FIND_IN_SET(#{params.typeIds},jp.type_ids)
+            </if>
+            <if test="params.cityCode != null and params.cityCode != ''">
+                AND jp.city_code = #{params.cityCode}
+            </if>
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (jp.descr like CONCAT('%',#{params.keyword},'%')
+                or jp.title like CONCAT('%',#{params.keyword},'%')
+                or jp.type_names like CONCAT('%',#{params.keyword},'%')
+                or su.phone like CONCAT('%',#{params.keyword},'%')
+                or su.realname like CONCAT('%',#{params.keyword},'%')
+                )
+            </if>
+            order by jp.create_time desc
+        </if>
+    </select>
+
+</mapper>

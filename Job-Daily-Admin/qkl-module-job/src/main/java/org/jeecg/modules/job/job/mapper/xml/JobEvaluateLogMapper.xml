@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.job.mapper.JobEvaluateLogMapper">
+
+    <select id="getMyEvaluateList" resultType="map">
+        select oc.id as id,oc.create_time as createTime,oc.role_code as roleCode,oc.post_id as postId,oc.score as score,oc.images as images,oc.order_id as orderId,
+        oc.user_id as userId,oc.post_user_id as postUserId,oc.content as content,
+        jp.title as title,jp.phone as contact,
+        su.nickname as userName,su.avatar as userAvatar,su.phone as userPhone,
+        boss.nickname as bossName,boss.avatar as bossAvatar,boss.phone as bossPhone,
+        ev.score as userScore,
+        ev2.score as bossScore
+        from job_evaluate_log oc
+        left join job_post jp on jp.id=oc.post_id
+        left join sys_user su on su.id=oc.user_id
+        left join sys_user boss on boss.id=oc.post_user_id
+        left join job_evaluate ev on  ev.user_id = oc.user_id and ev.role_code='member'
+        left join job_evaluate ev2 on  ev2.user_id = oc.post_user_id  and ev2.role_code='company'
+        WHERE 1=1
+        <if test="params.userId !=null and params.userId !=''">
+            AND oc.user_id = #{params.userId}
+        </if>
+        <if test="params.score !=null and params.score !=''">
+            AND oc.score = #{params.score}
+        </if>
+        <if test="params.postUserId !=null and params.postUserId !=''">
+            AND oc.post_user_id = #{params.postUserId}
+        </if>
+        <if test="params.roleCode !=null and params.roleCode !=''">
+            AND oc.role_code = #{params.roleCode}
+        </if>
+        <if test="params.startDate != null and params.startDate != ''">
+            and oc.create_time >= #{params.startDate} and oc.create_time &lt;= #{params.endDate}
+        </if>
+        <if test="params.keyword !=null and params.keyword !=''">
+            and
+            (
+            jp.title like CONCAT('%',#{params.keyword},'%')
+            or jp.descr like CONCAT('%',#{params.keyword},'%')
+            or su.nickname like CONCAT('%',#{params.keyword},'%')
+            or boss.nickname like CONCAT('%',#{params.keyword},'%')
+            )
+        </if>
+        order by oc.create_time desc
+    </select>
+
+
+    <select id="getUserEvaluateList" resultType="map">
+        select oc.id as id,oc.create_time as createTime,oc.role_code as roleCode,oc.post_id as postId,oc.score as score,oc.images as images,oc.order_id as orderId,
+        oc.user_id as userId,oc.post_user_id as postUserId,oc.content as content,
+        jp.title as title,jp.phone as contact,
+        su.nickname as userName,su.avatar as userAvatar,su.phone as userPhone,
+        boss.nickname as bossName,boss.avatar as bossAvatar,boss.phone as bossPhone,
+        ev.score as userScore
+        from job_evaluate_log oc
+        left join job_post jp on jp.id=oc.post_id
+        left join sys_user su on su.id=oc.user_id
+        left join sys_user boss on boss.id=oc.post_user_id
+        left join job_evaluate ev on  ev.user_id = oc.user_id and ev.role_code='member'
+        WHERE 1=1
+        <if test="params.userId !=null and params.userId !=''">
+            AND oc.user_id = #{params.userId}
+        </if>
+        <if test="params.postUserId !=null and params.postUserId !=''">
+            AND oc.post_user_id = #{params.postUserId}
+        </if>
+        <if test="params.roleCode !=null and params.roleCode !=''">
+            AND oc.role_code = #{params.roleCode}
+        </if>
+        <if test="params.keyword !=null and params.keyword !=''">
+            and
+            (
+            jp.title like CONCAT('%',#{params.keyword},'%')
+            or jp.descr like CONCAT('%',#{params.keyword},'%')
+            )
+        </if>
+        order by oc.create_time desc
+    </select>
+
+
+    <select id="getBossEvaluateList" resultType="map">
+        select oc.id as id,oc.create_time as createTime,oc.role_code as roleCode,oc.post_id as postId,oc.score as score,oc.images as images,oc.order_id as orderId,
+        oc.user_id as userId,oc.post_user_id as postUserId,oc.content as content,
+        jp.title as title,jp.phone as contact,
+        su.nickname as userName,su.avatar as userAvatar,su.phone as userPhone,
+        boss.nickname as bossName,boss.avatar as bossAvatar,boss.phone as bossPhone,
+        ev2.score as bossScore
+        from job_evaluate_log oc
+        left join job_post jp on jp.id=oc.post_id
+        left join sys_user su on su.id=oc.user_id
+        left join sys_user boss on boss.id=oc.post_user_id
+        left join job_evaluate ev2 on  ev2.user_id = oc.post_user_id  and ev2.role_code='company'
+        WHERE 1=1
+        <if test="params.userId !=null and params.userId !=''">
+            AND oc.user_id = #{params.userId}
+        </if>
+        <if test="params.postUserId !=null and params.postUserId !=''">
+            AND oc.post_user_id = #{params.postUserId}
+        </if>
+        <if test="params.roleCode !=null and params.roleCode !=''">
+            AND oc.role_code = #{params.roleCode}
+        </if>
+        <if test="params.keyword !=null and params.keyword !=''">
+            and
+            (
+            jp.title like CONCAT('%',#{params.keyword},'%')
+            or jp.descr like CONCAT('%',#{params.keyword},'%')
+            )
+        </if>
+        order by oc.create_time desc
+    </select>
+
+
+
+</mapper>

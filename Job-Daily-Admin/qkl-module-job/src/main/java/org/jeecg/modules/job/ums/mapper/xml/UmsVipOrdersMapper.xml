@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.ums.mapper.UmsVipOrdersMapper">
+
+    <select parameterType="org.jeecg.modules.job.ums.entity.UmsVipOrders"
+            resultType="map" id="getPageListForAdmin">
+        select ua.id as id,ua.member_id as memberId,ua.orders_sn as ordersSn,ua.vip_id as vipId,
+        ua.vip_name as vipName,ua.pay_amount as payAmount,ua.orders_status as ordersStatus,ua.pay_type as payType, ua.create_time as createTime,
+        su.realname as username,su.avatar as userAvatar,su.phone as userPhone
+        from ums_vip_orders ua
+        left join sys_user su on su.id = ua.member_id
+        where 1 = 1 and ua.del_flag!=1
+        <if test="paramCondition.ordersStatus!=null and paramCondition.ordersStatus!=''">
+            AND ua.orders_status = #{paramCondition.ordersStatus}
+        </if>
+        <if test="paramCondition.ordersSn!=null and paramCondition.ordersSn!=''">
+            AND ua.orders_sn = #{paramCondition.ordersSn}
+        </if>
+        <if test="paramCondition.keyword != null and paramCondition.keyword !='' ">
+            and (ua.orders_sn like CONCAT('%',#{paramCondition.keyword},'%') or su.realname like CONCAT('%',#{paramCondition.keyword},'%') or su.phone like CONCAT('%',#{paramCondition.keyword},'%'))
+        </if>
+        <if test="paramCondition.memberId!=null and paramCondition.memberId!=''">
+            AND ua.member_id = #{paramCondition.memberId}
+        </if>
+        <if test="paramCondition.payType!=null and paramCondition.payType!=''">
+            AND ua.pay_type = #{paramCondition.payType}
+        </if>
+        order by ua.create_time desc
+    </select>
+
+
+
+</mapper>

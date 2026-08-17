@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.ums.mapper.UmsAccountRecordsMapper">
+
+
+    <select id="getStatistics" resultType="org.jeecg.modules.job.ums.entity.UmsAccountRecords" parameterType="org.jeecg.modules.job.ums.entity.UmsAccountRecords">
+        select sum(money) as money,user_id
+        from ums_account_records where 1 = 1
+        <if test="paramCondition.startDate!=null and paramCondition.startDate!=''">
+            AND create_time >= #{paramCondition.startDate}
+        </if>
+        <if test="paramCondition.userId!=null">
+            AND user_id = #{paramCondition.userId}
+        </if>
+    </select>
+
+    <select id="getAccountRecordsPageList" resultType="org.jeecg.modules.job.ums.entity.UmsAccountRecords" parameterType="org.jeecg.modules.job.ums.entity.UmsAccountRecords">
+        select
+        umar.*,um.realname as memberName,um.phone as memberPhone
+        from ums_account_records umar
+        left join sys_user um on um.id=umar.user_id
+        where 1 = 1
+        <if test="paramCondition.userId != null">
+            and umar.user_id = #{paramCondition.userId}
+        </if>
+        <if test="paramCondition.accountType != null and paramCondition.accountType != 0 ">
+            and umar.account_type = #{paramCondition.accountType}
+        </if>
+        <if test="paramCondition.keyword != null and paramCondition.keyword != ''">
+            and (
+            um.realname like CONCAT('%',#{paramCondition.keyword},'%')
+            or um.phone like CONCAT('%',#{paramCondition.keyword},'%')
+            or umar.content like CONCAT('%',#{paramCondition.keyword},'%')
+            )
+        </if>
+        <if test="paramCondition.startDate != null and paramCondition.startDate != ''">
+            and umar.create_time >= #{paramCondition.startDate} and umar.create_time &lt; #{paramCondition.endDate}
+        </if>
+        order by umar.create_time desc
+    </select>
+
+</mapper>

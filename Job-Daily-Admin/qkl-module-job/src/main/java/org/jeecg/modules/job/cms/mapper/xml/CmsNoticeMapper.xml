@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.cms.mapper.CmsNoticeMapper">
+
+    <select id="getUnReadCount" resultType="int">
+        select COUNT(1) as count
+        from
+        (
+        select cn.*,cnr.id as rid
+        from cms_notice cn
+        LEFT JOIN cms_notice_read cnr on cnr.notice_id = cn.id
+        where 1 = 1
+        <if test="userId == null">
+            and if_public = 1
+        </if>
+        <if test="roleCode != null and roleCode != ''">
+            and ( cn.role_code = #{roleCode})
+        </if>
+        <if test="type != null">
+            and cn.type = #{type}
+        </if>
+        <if test="userId != null and userId != ''">
+            and ( cn.user_id = #{userId})
+        </if>
+        ) aa where rid is null
+    </select>
+
+    <select id="getUnReadList" resultType="org.jeecg.modules.job.cms.entity.CmsNotice">
+        select aa.*
+        from
+        (
+        select cn.*,cnr.id as rid
+        from cms_notice cn
+        LEFT JOIN cms_notice_read cnr on cnr.notice_id = cn.id
+        where 1 = 1
+        <if test="userId != null and userId != ''">
+            and ( cn.user_id = #{userId} or if_public =1)
+        </if>
+        ) aa where rid is null
+    </select>
+
+</mapper>

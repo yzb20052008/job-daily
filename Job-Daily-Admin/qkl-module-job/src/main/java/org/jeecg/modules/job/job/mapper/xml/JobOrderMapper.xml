@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.job.mapper.JobOrderMapper">
+
+    <select id="getOrderList" resultType="map">
+        select
+        od.id as id,od.user_id as userId,od.post_user_id as postUserId,od.post_id as postId,od.create_time as createTime,od.order_status as orderStatus,
+        od.company_evaluate as companyEvaluate,od.user_evaluate as userEvaluate,
+        jp.title as title,jp.user_id as userId,jp.settlement_type as settlementType,jp.type_ids as typeIds,
+        jp.type_names as typeNames,jp.start_time as startTime,jp.end_time as endTime,jp.close_time as closeTime,jp.sex_require as sexRequire,
+        jp.age_require as ageRequire,jp.recruits_number as recruitsNumber,jp.address_name as addressName,jp.address as address,jp.longitude as longitude,jp.latitude as latitude,
+        jp.phone as phone,jp.descr as descr,jp.pricing_mode as pricingMode,jp.salary as salary,jp.salary_unit as salaryUnit,
+        jp.job_requires as jobRequires,jp.post_status as postStatus,
+        su.nickname as userName,su.phone as userPhone,su.avatar as userAvatar
+        from job_order od
+        left JOIN job_post jp on jp.id=od.post_id
+        left JOIN sys_user su ON su.id = od.post_user_id
+        WHERE 1=1 and od.del_flag!=1
+        <if test="params != null">
+            <if test="params.orderStatus != null">
+                AND od.order_status = #{params.orderStatus}
+            </if>
+            <if test="params.userId != null and params.userId != ''">
+                AND od.user_id = #{params.userId}
+            </if>
+            <if test="params.status == 1">
+                AND od.order_status in ('1','2','3')
+            </if>
+            <if test="params.status == 2">
+                AND od.order_status = '4' and od.user_evaluate = 0
+            </if>
+            <if test="params.status == 3">
+                AND (od.order_status = '5' or od.user_evaluate = 1)
+            </if>
+            <if test="params.status == 4">
+                AND od.order_status = '6'
+            </if>
+            <if test="params.cityCode != null and params.cityCode != ''">
+                AND od.city_code = #{params.cityCode}
+            </if>
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (jp.descr like CONCAT('%',#{params.keyword},'%')
+                or jp.title like CONCAT('%',#{params.keyword},'%')
+                or jp.type_names like CONCAT('%',#{params.keyword},'%')
+                or su.phone like CONCAT('%',#{params.keyword},'%')
+                or su.realname like CONCAT('%',#{params.keyword},'%')
+                )
+            </if>
+        </if>
+        order by od.create_time desc
+    </select>
+
+
+    <select id="getPostUserList" resultType="map">
+        select
+        od.id as id,od.user_id as userId,od.post_user_id as postUserId,od.post_id as postId,od.create_time as createTime,od.order_status as orderStatus,
+        od.start_time as startTime,od.end_time as endTime,od.company_evaluate as companyEvaluate,od.ensure_time as ensureTime,
+        jp.title as title,
+        su.nickname as userName,su.phone as userPhone,su.avatar as userAvatar,su.birthday as birthday,su.sex as sex
+        from job_order od
+        left JOIN job_post jp on jp.id=od.post_id
+        left JOIN sys_user su ON su.id = od.user_id
+        WHERE 1=1 and od.del_flag!=1
+        <if test="params != null">
+            <if test="params.orderStatus != null and params.orderStatus != 4 ">
+                AND od.order_status = #{params.orderStatus}
+            </if>
+            <if test="params.orderStatus != null and params.orderStatus == 4 ">
+                AND od.order_status = #{params.orderStatus} and od.company_evaluate = 0
+            </if>
+            <if test="params.cityCode != null and params.cityCode != ''">
+                AND od.city_code = #{params.cityCode}
+            </if>
+            <if test="params.postId != null and params.postId != ''">
+                AND od.post_id = #{params.postId}
+            </if>
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (jp.content like CONCAT('%',#{params.keyword},'%')
+                or jp.title like CONCAT('%',#{params.keyword},'%')
+                or jp.typeNames like CONCAT('%',#{params.keyword},'%')
+                or su.phone like CONCAT('%',#{params.keyword},'%')
+                or su.realname like CONCAT('%',#{params.keyword},'%')
+                )
+            </if>
+        </if>
+        order by od.create_time desc
+    </select>
+
+
+    <select id="getOrderListForAdmin" resultType="map">
+        select
+        od.id as id,od.user_id as userId,od.post_user_id as postUserId,od.post_id as postId,od.create_time as createTime,od.order_status as orderStatus,
+        od.company_evaluate as companyEvaluate,od.user_evaluate as userEvaluate,od.amount as amount,
+        jp.title as title,jp.user_id as userId,jp.settlement_type as settlementType,jp.type_ids as typeIds,
+        jp.type_names as typeNames,jp.start_time as startTime,jp.end_time as endTime,jp.close_time as closeTime,jp.sex_require as sexRequire,
+        jp.age_require as ageRequire,jp.recruits_number as recruitsNumber,jp.address_name as addressName,jp.address as address,jp.longitude as longitude,
+        jp.phone as phone,jp.descr as descr,jp.pricing_mode as pricingMode,jp.salary as salary,jp.salary_unit as salaryUnit,
+        jp.job_requires as jobRequires,jp.post_status as postStatus,
+        su.nickname as postUserName,su.phone as pastUserPhone,su.avatar as postUserAvatar,
+        su2.nickname as userName,su2.phone as userPhone,su2.avatar as userAvatar
+        from job_order od
+        left JOIN job_post jp on jp.id=od.post_id
+        left JOIN sys_user su ON su.id = od.post_user_id
+        left JOIN sys_user su2 ON su2.id = od.user_id
+        WHERE 1=1 and od.del_flag!=1
+        <if test="params != null">
+            <if test="params.orderStatus != null">
+                AND od.order_status = #{params.orderStatus}
+            </if>
+            <if test="params.cityCode != null and params.cityCode != ''">
+                AND od.city_code = #{params.cityCode}
+            </if>
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (jp.descr like CONCAT('%',#{params.keyword},'%')
+                or jp.title like CONCAT('%',#{params.keyword},'%')
+                or jp.type_names like CONCAT('%',#{params.keyword},'%')
+                or su.phone like CONCAT('%',#{params.keyword},'%')
+                or su.nickname like CONCAT('%',#{params.keyword},'%')
+                or su2.phone like CONCAT('%',#{params.keyword},'%')
+                or su2.nickname like CONCAT('%',#{params.keyword},'%')
+                )
+            </if>
+        </if>
+        order by od.create_time desc
+    </select>
+
+</mapper>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.integral.mapper.IntegralRechargeMapper">
+
+    <select id="getRechargeOrderList" resultType="map">
+        select ir.id as id,ir.create_time as createTime,ir.order_sn as orderSn,ir.user_id as userId,ir.money as money,ir.integral as integral,ir.pay_type as payType,
+        ir.recharge_status as rechargeStatus,su.nickname as userName,su.avatar as userAvatar,su.phone as userPhone
+        from integral_recharge ir
+        left join sys_user su on su.id=ir.user_id
+        WHERE 1=1
+        <if test="params.userId !=null and params.userId !=''">
+            AND ir.user_id = #{params.userId}
+        </if>
+        <if test="params.payType !=null and params.payType !=''">
+            AND ir.pay_type = #{params.payType}
+        </if>
+        <if test="params.rechargeStatus !=null and params.rechargeStatus !=''">
+            AND ir.recharge_status = #{params.rechargeStatus}
+        </if>
+        <if test="params.keyword !=null and params.keyword !=''">
+            and
+            (
+            su.nickname like CONCAT('%',#{params.keyword},'%')
+            or su.phone like CONCAT('%',#{params.keyword},'%')
+            )
+        </if>
+        order by ir.create_time desc
+    </select>
+
+
+
+</mapper>

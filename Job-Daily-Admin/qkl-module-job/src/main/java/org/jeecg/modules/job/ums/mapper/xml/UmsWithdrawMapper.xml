@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.ums.mapper.UmsWithdrawMapper">
+
+    <select id="getWithdrawPageList" resultType="org.jeecg.modules.job.ums.entity.UmsWithdraw" parameterType="org.jeecg.modules.job.ums.entity.UmsWithdraw">
+        select
+        mw.*,um.nickname as userName,um.phone as userPhone,um.avatar as userAvatar
+        from ums_withdraw mw
+        left join sys_user um on um.id=mw.user_id
+        where 1 = 1
+        <if test="paramCondition.userId != null">
+            and mw.user_id = #{paramCondition.userId}
+        </if>
+        <if test="paramCondition.accountType != null">
+            and mw.account_type = #{paramCondition.accountType}
+        </if>
+        <if test="paramCondition.withdrawStatus != null">
+            and mw.withdraw_status = #{paramCondition.withdrawStatus}
+        </if>
+        <if test="paramCondition.keyword != null and paramCondition.keyword != ''">
+            and (
+                mw.withdraw_name like CONCAT('%',#{paramCondition.keyword},'%')
+            or mw.withdraw_account like CONCAT('%',#{paramCondition.keyword},'%')
+            or um.phone like CONCAT('%',#{paramCondition.keyword},'%')
+            or um.phone like CONCAT('%',#{paramCondition.keyword},'%')
+            )
+        </if>
+        order by mw.create_time desc
+    </select>
+
+</mapper>

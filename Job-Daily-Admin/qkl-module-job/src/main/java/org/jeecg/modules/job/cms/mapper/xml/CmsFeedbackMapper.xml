@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.cms.mapper.CmsFeedbackMapper">
+
+
+
+    <select id="getFeedbackList" resultType="org.jeecg.modules.job.cms.entity.CmsFeedback">
+        select cf.*,su.nickname as nickname,su.avatar as userAvatar,su.phone as userPhone
+        FROM cms_feedback cf
+        left JOIN sys_user su ON su.id = cf.user_id
+        WHERE  1=1
+        <if test="params != null">
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (
+                cf.content LIKE concat(concat('%',#{params.keyword}),'%')
+                or  su.nickname LIKE concat(concat('%',#{params.keyword}),'%')
+                or  su.phone LIKE concat(concat('%',#{params.keyword}),'%')
+                )
+            </if>
+            <if test="params.userPhone != null and params.userPhone != ''">
+                AND su.phone = #{params.userPhone}
+            </if>
+        </if>
+        ORDER BY  cf.create_time desc
+    </select>
+
+
+
+</mapper>

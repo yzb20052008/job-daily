@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.job.mapper.JobBrowseMapper">
+
+    <select id="getBrowseList" resultType="map">
+        select oc.id as id,oc.create_time as createTime,oc.role_code as roleCode,oc.data_id as dataId, jp.id as postId,jp.title as title,jp.user_id as userId,jp.settlement_type as settlementType,jp.type_ids as typeIds,
+        jp.type_names as typeNames,jp.start_time as startTime,jp.end_time as endTime,jp.close_time as closeTime,jp.sex_require as sexRequire,
+        jp.age_require as ageRequire,jp.recruits_number as recruitsNumber,jp.address_name as addressName,jp.address as address,jp.longitude as longitude,
+        jp.phone as phone,jp.descr as descr,jp.pricing_mode as pricingMode,jp.salary as salary,jp.salary_unit as salaryUnit,
+        jp.job_requires as jobRequires,jp.video_url as videoUrl,jp.img_url as imgUrl,jp.if_call as ifCall,jp.browse_number as browseNumber,
+        jp.if_topping as ifTopping,jp.if_bold as ifBold,jp.post_status as postStatus,
+        ( 6371* acos( cos( radians(#{params.latitude}) ) * cos( radians( jp.latitude ) ) * cos( radians(
+        jp.longitude ) - radians(#{params.longitude}) ) + sin( radians(#{params.latitude}) ) * sin(
+        radians( jp.latitude ) ) ) )
+        AS distance
+        from job_browse oc
+        left join job_post jp on jp.id=oc.data_id
+        WHERE 1=1
+        <if test="params.userId !=null and params.userId !=''">
+            AND oc.user_id = #{params.userId}
+        </if>
+        <if test="params.keyword !=null and params.keyword !=''">
+            and
+            (
+            jp.title like CONCAT('%',#{params.keyword},'%')
+            or jp.descr like CONCAT('%',#{params.keyword},'%')
+            )
+        </if>
+        order by oc.create_time desc
+    </select>
+
+
+</mapper>

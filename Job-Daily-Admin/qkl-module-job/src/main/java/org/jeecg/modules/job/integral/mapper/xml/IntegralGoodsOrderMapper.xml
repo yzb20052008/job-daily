@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.integral.mapper.IntegralGoodsOrderMapper">
+
+    <select id="getGoodsOrderList" resultType="map">
+        select od.id as id,od.create_time as createTime,od.order_sn as orderSn,od.user_id as userId,od.goods_id as goodsId,od.price as price,od.amount as amount,
+        od.order_status as orderStatus,od.pay_type as payType,
+        goods.name as goodsName,goods.image as goodsImg,goods.period as period,
+        su.nickname as userName,su.avatar as userAvatar,su.phone as userPhone
+        from integral_goods_order od
+        left join integral_goods goods on goods.id = od.goods_id
+        left join sys_user su on su.id = od.user_id
+        WHERE 1=1
+        <if test="params.userId !=null and params.userId !=''">
+            AND od.user_id = #{params.userId}
+        </if>
+        <if test="params.payType !=null and params.payType !=''">
+            AND od.pay_type = #{params.payType}
+        </if>
+        <if test="params.orderStatus !=null and params.orderStatus !=''">
+            AND od.order_status = #{params.orderStatus}
+        </if>
+        <if test="params.keyword !=null and params.keyword !=''">
+            and
+            (
+            su.nickname like CONCAT('%',#{params.keyword},'%')
+            or su.phone like CONCAT('%',#{params.keyword},'%')
+            or goods.name like CONCAT('%',#{params.keyword},'%')
+            )
+        </if>
+        order by od.create_time desc
+    </select>
+
+
+
+</mapper>

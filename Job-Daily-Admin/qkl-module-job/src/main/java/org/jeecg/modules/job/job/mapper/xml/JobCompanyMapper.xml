@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.job.mapper.JobCompanyMapper">
+
+    <select parameterType="org.jeecg.modules.job.job.entity.JobCompany"
+            resultType="org.jeecg.modules.job.job.entity.JobCompany" id="getCompanyAuthList">
+        select ua.*,su.avatar as userAvatar,su.nickname as userName,su.phone as userPhone
+        from job_company ua
+        left join sys_user su on su.id = ua.user_id
+        where 1 = 1
+        <if test="paramCondition.keyword != null and paramCondition.keyword !='' ">
+            and (su.nickname like CONCAT('%',#{paramCondition.keyword},'%') or su.phone like CONCAT('%',#{paramCondition.keyword},'%'))
+        </if>
+        <if test="paramCondition.userId!=null and paramCondition.userId!=''">
+            AND ua.user_id = #{paramCondition.userId}
+        </if>
+        <if test="paramCondition.authStatus!=null">
+            AND ua.auth_status = #{paramCondition.authStatus}
+        </if>
+        order by ua.create_time desc
+    </select>
+</mapper>

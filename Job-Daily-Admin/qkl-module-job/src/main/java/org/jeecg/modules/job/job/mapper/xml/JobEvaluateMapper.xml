@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.job.mapper.JobEvaluateMapper">
+
+    <select id="getEvaluateList" resultType="map">
+        select oc.id as id,oc.create_time as createTime,oc.role_code as roleCode,oc.score as score,oc.num as num,oc.total_score as totalScore,
+        su.nickname as userName,su.avatar as userAvatar,su.phone as userPhone
+        from job_evaluate oc
+        left join sys_user su on su.id=oc.user_id
+        WHERE 1=1
+        <if test="params.userId !=null and params.userId !=''">
+            AND oc.user_id = #{params.userId}
+        </if>
+        <if test="params.roleCode !=null and params.roleCode !=''">
+            AND oc.role_code = #{params.roleCode}
+        </if>
+        <if test="params.keyword !=null and params.keyword !=''">
+            and
+            (
+            su.nickname like CONCAT('%',#{params.keyword},'%')
+            or su.phone like CONCAT('%',#{params.keyword},'%')
+            )
+        </if>
+        order by oc.create_time desc
+    </select>
+
+</mapper>

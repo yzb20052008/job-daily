@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.job.mapper.JobResumeMapper">
+
+    <select id="getResumeList" resultType="map">
+        select jr.id as id,jr.user_id as userId,jr.name as name,jr.phone as phone,jr.avatar as avatar,jr.sex as sex,jr.birthday as birthday,jr.personal_skill as persionSkill,
+        jr.skills as skills,jr.work_year as workYear,jr.job_status as jobStatus,jr.address as address,jr.address_name as addressName,jr.address_lat as addressLat,jr.address_lng as addressLng,jr.update_time as updateTime,
+        jri.type_names as typeNames,jri.type_ids as typeIds,jri.employ_method as employMethod,jri.settlement_type as settlementType,jri.work_city as workCity,jri.work_type as workType,jri.expect_salary as expectSalary,jri.salary_unit as salaryUnit,
+        ( 6371* acos( cos( radians(#{params.latitude}) ) * cos( radians( jr.address_lat ) ) * cos( radians(
+        jr.address_lng ) - radians(#{params.longitude}) ) + sin( radians(#{params.latitude}) ) * sin(
+        radians( jr.address_lat ) ) ) ) AS distance
+        ,ura.realname as realName,su.update_time as loginTime,je.score as score
+        from job_resume jr
+        left join job_resume_intention jri on jri.user_id=jr.user_id
+        LEFT JOIN ums_realname_auth ura on ura.user_id = jr.user_id and ura.auth_status =1
+        left join sys_user su on su.id = jr.user_id
+        left join job_evaluate je on je.user_id = jr.user_id and je.role_code = 'member'
+        WHERE 1=1
+        <if test="params.sex !=null and params.sex !=''">
+            AND jr.sex = #{params.sex}
+        </if>
+        <if test="params.userId !=null and params.userId !=''">
+            AND jr.user_id = #{params.userId}
+        </if>
+        <if test="params.cityCode !=null and params.cityCode !=''">
+            AND(
+            jr.city_code = #{params.cityCode}
+            or jri.city_code = #{params.cityCode}
+            )
+        </if>
+        <if test="params.pCityCode !=null and params.pCityCode !=''">
+            AND(
+            jr.p_city_code = #{params.pCityCode}
+            or jri.p_city_code = #{params.pCityCode}
+            )
+        </if>
+        <if test="params.typeIds != null and params.typeIds != ''">
+            AND jri.type_ids regexp CONCAT('(^|,)(',#{params.typeIds},')(,|$)')
+        </if>
+        <if test="params.typeCodes != null and params.typeCodes != ''">
+            and (
+            jri.type_codes like CONCAT(#{params.typeCodes},'%')
+            or jri.type_codes like CONCAT('%,',#{params.typeCodes},'%')
+            )
+        </if>
+        <if test="params.keyword !=null and params.keyword !=''">
+            and
+            (
+            jr.name like CONCAT('%',#{params.keyword},'%')
+            or jr.phone like CONCAT('%',#{params.keyword},'%')
+            or jr.personal_skill like CONCAT('%',#{params.keyword},'%')
+            )
+        </if>
+        <if test="params.orderBy=='new'">
+            order by su.update_time desc, jr.create_time desc
+        </if>
+        <if test="params.orderBy=='near'">
+            order by distance asc, jr.create_time desc
+        </if>
+        <if test="params.orderBy=='all'">
+            order by distance asc, jr.create_time desc
+        </if>
+    </select>
+
+    <select id="getResumeListForAdmin" resultType="map">
+        select jr.id as id,jr.user_id as userId,jr.name as name,jr.phone as phone,jr.avatar as avatar,jr.percentage as percentage,jr.personal_skill as personalSkill,jr.sex as sex,jr.birthday as birthday,jr.personal_skill as persionSkill,
+        jr.skills as skills,jr.work_year as workYear,jr.job_status as jobStatus,jr.address as address,jr.address_name as addressName,jr.address_lat as addressLat,jr.address_lng as addressLng,jr.create_time as createTime,
+        jri.type_names as typeNames,jri.type_ids as typeIds,jri.employ_method as employMethod,jri.settlement_type as settlementType,jri.work_city as workCity,jri.work_type as workType,jri.expect_salary as expectSalary,jri.salary_unit as salaryUnit,
+        ura.realname as realName,su.update_time as loginTime,je.score as score
+        from job_resume jr
+        left join job_resume_intention jri on jri.user_id=jr.user_id
+        LEFT JOIN ums_realname_auth ura on ura.user_id = jr.user_id and ura.auth_status =1
+        left join sys_user su on su.id = jr.user_id
+        left join job_evaluate je on je.user_id = jr.user_id and je.role_code = 'member'
+        WHERE 1=1
+        <if test="params.sex !=null and params.sex !=''">
+            AND jr.sex = #{params.sex}
+        </if>
+        <if test="params.userId !=null and params.userId !=''">
+            AND jr.user_id = #{params.userId}
+        </if>
+        <if test="params.jobStatus !=null and params.jobStatus !=''">
+            AND jr.job_status = #{params.jobStatus}
+        </if>
+        <if test="params.cityCode !=null and params.cityCode !=''">
+            AND jr.city_code = #{params.cityCode}
+        </if>
+        <if test="params.typeIds != null and params.typeIds != ''">
+            AND FIND_IN_SET(#{params.typeIds},jri.type_ids)
+        </if>
+        <if test="params.keyword !=null and params.keyword !=''">
+            and
+            (
+            jr.name like CONCAT('%',#{params.keyword},'%')
+            or jr.phone like CONCAT('%',#{params.keyword},'%')
+            or jr.personal_skill like CONCAT('%',#{params.keyword},'%')
+            )
+        </if>
+        order by jr.create_time desc
+    </select>
+
+</mapper>

@@ -1,0 +1,103 @@
+# ======================
+# 版本控制元数据（禁止提交）
+# ======================
+.svn/
+**/.svn/
+
+# ======================
+# 系统 & 编辑器文件
+# ======================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.history
+
+# 编辑器/IDE 缓存与配置
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.code-workspace
+.project
+.classpath
+.settings/
+
+# ======================
+# 通用临时、日志、运行缓存
+# ======================
+*.log
+logs/
+log/
+tmp/
+temp/
+cache/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.pid
+hs_err_pid*
+replay_pid*
+*.hprof
+
+# 压缩包、安装包
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+
+# ======================
+# SpringBoot / Java 运行&编译产物（保留配置文件）
+# ======================
+*.class
+target/
+build/
+out/
+bin/
+.apt_generated
+.factorypath
+.springBeans
+.sts4-cache
+
+# 仅忽略 IDE 本地私有配置，业务配置全部保留
+local.properties
+
+# ======================
+# Vue / UniApp 前端 运行&编译产物（保留 .env 等配置）
+# ======================
+# 依赖包（绝对不提交）
+node_modules/
+.pnpm-store/
+
+# 编译打包产物
+dist/
+dist-ssr/
+build/
+unpackage/
+platforms/
+hbuilderx/
+
+# 包管理器日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 工具缓存
+.eslintcache
+.stylelintcache
+.parcel-cache/
+.rollup.cache/
+
+# 测试覆盖率
+coverage/
+*.lcov
+.nyc_output/
+
+# 前端本地私有配置（不影响项目业务配置）
+config.local.js
+config.local.json

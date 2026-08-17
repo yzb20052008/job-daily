@@ -1,0 +1,10 @@
+{
+    "id": "n-text",
+    "name": "n-text 解决nvue文字无法衔接换行的问题",
+    "version": "1.0.0",
+    "description": "解决nvue文字无法衔接换行的问题。非richtext",
+    "keywords": [
+        "nvue",
+        "文字衔接"
+    ]
+}

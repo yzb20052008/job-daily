@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.job.mapper.JobCollectMapper">
+
+    <select id="getCollectList" resultType="map">
+        select oc.id as id,oc.create_time as createTime,oc.role_code as roleCode,oc.data_id as dataId, jp.id as
+        postId,jp.title as title,jp.user_id as userId,jp.settlement_type as settlementType,jp.type_ids as typeIds,
+        jp.type_names as typeNames,jp.start_time as startTime,jp.end_time as endTime,jp.close_time as
+        closeTime,jp.sex_require as sexRequire,
+        jp.age_require as ageRequire,jp.recruits_number as recruitsNumber,jp.address_name as addressName,jp.address as
+        address,jp.longitude as longitude,
+        jp.phone as phone,jp.descr as descr,jp.pricing_mode as pricingMode,jp.salary as salary,jp.salary_unit as
+        salaryUnit,
+        jp.job_requires as jobRequires,jp.video_url as videoUrl,jp.img_url as imgUrl,jp.if_call as
+        ifCall,jp.browse_number as browseNumber,
+        jp.if_topping as ifTopping,jp.if_bold as ifBold,jp.post_status as postStatus,
+        ( 6371* acos( cos( radians(#{params.latitude}) ) * cos( radians( jp.latitude ) ) * cos( radians(
+        jp.longitude ) - radians(#{params.longitude}) ) + sin( radians(#{params.latitude}) ) * sin(
+        radians( jp.latitude ) ) ) )
+        AS distance
+        from job_collect oc
+        left join job_post jp on jp.id=oc.data_id
+        WHERE 1=1 and jp.id is not null
+        <if test="params.userId !=null and params.userId !=''">
+            AND oc.user_id = #{params.userId}
+        </if>
+        <if test="params.roleCode !=null and params.roleCode !=''">
+            AND oc.role_code = #{params.roleCode}
+        </if>
+        <if test="params.keyword !=null and params.keyword !=''">
+            and
+            (
+            jp.title like CONCAT('%',#{params.keyword},'%')
+            or jp.descr like CONCAT('%',#{params.keyword},'%')
+            )
+        </if>
+        order by oc.create_time desc
+    </select>
+
+    <select id="getCollectListForCom" resultType="map">
+        select jc.id as id,jc.user_id as userId,jc.role_code as roleCode,jc.data_id as dataId,jc.create_time as
+        createTime,
+        jr.name as name,jr.phone as phone,jr.avatar as avatar,jr.sex as sex,jr.birthday as birthday,jr.personal_skill as
+        persionSkill,
+        jr.skills as skills,jr.work_year as workYear,jr.job_status as jobStatus,jr.address as address,jr.address_name as
+        addressName,jr.address_lat as addressLat,jr.address_lng as addressLng,
+        jri.type_names as typeNames,jri.type_ids as typeIds,jri.employ_method as employMethod,jri.settlement_type as
+        settlementType,jri.work_city as workCity,jri.work_type as workType,jri.expect_salary as
+        expectSalary,jri.salary_unit as salaryUnit,
+        ( 6371* acos( cos( radians(#{params.latitude}) ) * cos( radians( jr.address_lat ) ) * cos( radians(
+        jr.address_lng ) - radians(#{params.longitude}) ) + sin( radians(#{params.latitude}) ) * sin(
+        radians( jr.address_lat ) ) ) ) AS distance
+        ,ura.realname as realName
+        from job_collect jc
+        left join job_resume jr on jr.id=jc.data_id
+        left join job_resume_intention jri on jri.user_id=jr.user_id
+        LEFT JOIN ums_realname_auth ura on ura.user_id = jr.user_id and ura.auth_status =1
+        WHERE 1=1 and jr.id is not null
+        <if test="params.roleCode !=null and params.roleCode !=''">
+            AND jc.role_code = #{params.roleCode}
+        </if>
+        <if test="params.userId !=null and params.userId !=''">
+            AND jc.user_id = #{params.userId}
+        </if>
+        <if test="params.keyword !=null and params.keyword !=''">
+            and
+            (
+            jr.name like CONCAT('%',#{params.keyword},'%')
+            or jr.phone like CONCAT('%',#{params.keyword},'%')
+            or jr.personal_skill like CONCAT('%',#{params.keyword},'%')
+            )
+        </if>
+        order by jc.create_time desc
+    </select>
+
+</mapper>

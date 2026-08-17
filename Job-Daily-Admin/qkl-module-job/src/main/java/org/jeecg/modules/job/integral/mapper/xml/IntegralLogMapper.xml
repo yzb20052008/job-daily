@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.integral.mapper.IntegralLogMapper">
+
+    <select id="getTotalIntegral" resultType="int">
+        select  IFNULL(SUM(integral),0)
+        from integral_log
+        where 1 = 1
+        <if test="dayStart != null and dayStart != ''">
+            and create_time &gt;= #{dayStart} and create_time &lt; #{dayEnd}
+        </if>
+        <if test="memberId != null and memberId != ''">
+            and user_id = #{memberId}
+        </if>
+    </select>
+
+    <select parameterType="org.jeecg.modules.job.integral.entity.IntegralLog"
+            resultType="org.jeecg.modules.job.integral.entity.IntegralLog" id="getIntegralLogList">
+        select ua.*,su.avatar as userAvatar,su.realname as userName,su.phone as userPhone
+        from integral_log ua
+        left join sys_user su on su.id = ua.user_id
+        where 1 = 1
+        <if test="paramCondition.keyword != null and paramCondition.keyword !='' ">
+            and (su.realname like CONCAT('%',#{paramCondition.keyword},'%') or su.phone like CONCAT('%',#{paramCondition.keyword},'%'))
+        </if>
+        <if test="paramCondition.userId!=null and paramCondition.userId!=''">
+            AND ua.user_id = #{paramCondition.userId}
+        </if>
+        <if test="paramCondition.integralResource!=null and paramCondition.integralResource!=''">
+            AND ua.integral_resource = #{paramCondition.integralResource}
+        </if>
+        order by ua.create_time desc
+    </select>
+</mapper>

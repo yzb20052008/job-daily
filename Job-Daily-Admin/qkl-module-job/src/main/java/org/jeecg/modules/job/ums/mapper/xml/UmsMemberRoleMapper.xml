@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.ums.mapper.UmsMemberRoleMapper">
+
+    <select parameterType="org.jeecg.modules.job.ums.entity.UmsMemberRole"
+            resultType="map" id="getMemeberRoleList">
+        select ua.id as id,ua.member_id as memberId,ua.company_id as companyId,ua.member_role as memberRole,ua.post_name as postName
+        ,ua.create_time as createTime,
+        su.realname as realname,su.avatar as avatar,su.phone as phone
+        from ums_member_role ua
+        left join sys_user su on su.id = ua.member_id
+        where 1 = 1
+        <if test="paramCondition.companyId!=null and paramCondition.companyId!=''">
+            AND ua.company_id = #{paramCondition.companyId}
+        </if>
+        order by ua.member_role desc
+    </select>
+
+</mapper>

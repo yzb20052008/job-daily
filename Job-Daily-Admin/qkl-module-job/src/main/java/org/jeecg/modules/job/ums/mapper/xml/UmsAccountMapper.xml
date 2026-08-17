@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.ums.mapper.UmsAccountMapper">
+
+    <select id="getUserCountInfo" resultType="map">
+        select
+        COUNT(1) as totalCount,
+        COUNT(case when sur.auth_status = 1  then 1 end ) as verifyedCount,
+        COUNT(case when sur.auth_status = 0  then 1 end ) as verifyCount
+        from sys_user su
+        left join ums_realname_auth sur on sur.user_id = su.id
+        WHERE 1=1 and su.user_identity=3
+        <if test="startTime != null and startTime != ''">
+            and su.create_time >= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            and su.create_time &lt; #{endTime}
+        </if>
+    </select>
+
+
+    <select id="getCompanyCountInfo" resultType="map">
+        select
+        COUNT(1) as totalCount,
+        COUNT(case when auth_status = 0 then 1 end ) as waitVerifyCount,
+        COUNT(case when auth_status = 1 then 1 end ) as verifyedCount
+        from job_company
+        WHERE 1=1
+        <if test="startTime != null and startTime != ''">
+            and create_time >= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            and create_time &lt; #{endTime}
+        </if>
+        <if test="authStatus != null and authStatus != ''">
+            and auth_status = #{authStatus}
+        </if>
+    </select>
+
+    <select id="getPostCountInfo" resultType="map">
+        select
+        COUNT(1) as totalCount,
+        COUNT(case when post_status = 2 then 1 end ) as openCount,
+        COUNT(case when post_status != 2 then 1 end ) as noOpenCount
+        from job_post
+        WHERE 1=1
+        <if test="startTime != null and startTime != ''">
+            and create_time >= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            and create_time &lt; #{endTime}
+        </if>
+        <if test="postStatus != null and postStatus != ''">
+            and post_status &lt; #{postStatus}
+        </if>
+    </select>
+
+    <select id="getOrderCountInfo" resultType="map">
+        select
+        COUNT(1) as totalCount,
+        COUNT(case when order_status = 2 then 1 end ) as openCount,
+        COUNT(case when order_status != 2 then 1 end ) as noOpenCount
+        from job_order
+        WHERE 1=1
+        <if test="startTime != null and startTime != ''">
+            and create_time >= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            and create_time &lt; #{endTime}
+        </if>
+        <if test="orderStatus != null and orderStatus != ''">
+            and order_status &lt; #{orderStatus}
+        </if>
+    </select>
+
+</mapper>

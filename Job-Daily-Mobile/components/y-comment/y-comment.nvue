@@ -1,0 +1,302 @@
+<template>
+	<view class="media-item view">
+		<view class="u-demo-block">
+			<view class="u-demo-block__content">
+				<view class="album" style="padding: 30upx;">
+					<view class="album__avatar" @click="onJump('/pages/friends/friendInfo?friendId=' + item.userId)">
+						<!-- <image :src="item.avatar" mode="" style="width: 80upx;height: 80upx;"></image> -->
+						<u-avatar size="40" shape="square" :src="item.avatar"></u-avatar>
+					</view>
+					<view class="album__content">
+						<view class="album__info">
+							<view class="name">
+								<text class="info-name" @click="toDetail(item)">{{ item.nickname }}</text>
+								<text class="status" v-if="item.verifyStatus==0">待审核</text>
+								<text class="status"  v-if="item.verifyStatus==1">审核未通过</text>
+								
+							</view>
+							<text class="info-content" @click="toDetail(item)">{{ item.content }}</text>
+							<view v-if="item.mediaType == 2" class="video">
+								<video
+									class="video-info"
+									:controls="true"
+									:poster="item.url + '?x-oss-process=video/snapshot,t_1000,f_jpg,w_800,h_600,m_fast,ar_auto'"
+									:show-center-play-btn="true"
+									:src="item.url"
+									id="popup_video"
+									@play="play"
+								></video>
+							</view>
+							<template v-else>
+								<u-album v-if="item.urlList && item.urlList.length > 0" :urls="item.urlList" multipleSize="90"></u-album>
+								<u-album v-else :urls="item.urlList"></u-album>
+							</template>
+						</view>
+						<!-- <view class="location" v-if="item.province">
+							<view class="location-left">
+								<text class="location-left-name">{{ item.province }}·{{ item.location }}</text>
+								<text class="location-left-distance">{{ item.distance | formatDistance }}</text>
+							</view>
+						</view> -->
+						<view class="time">
+							<text class="time-text">{{$u.timeFormat (new Date(item.createTime).getTime(),'yyyy年mm月dd日 hh:MM')}}</text>
+						</view>
+					</view>
+				</view>
+				<u-line></u-line>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+export default {
+	props: {
+		item: {
+			type: Object,
+			default: function(e) {
+				return {};
+			}
+		},
+		index: {
+			type: [Number, String],
+			default: ''
+		}
+	},
+	filters: {
+		formatDistance(distance) {
+			var strDistance = '';
+			if (distance < 1) {
+				//一公里以内的
+				strDistance = distance * 1000 + 'm';
+			} else {
+				distance = distance.toFixed(1);
+				strDistance = distance + 'km';
+			}
+			return strDistance;
+		}
+	},
+	methods: {
+		onJump(url) {
+			uni.navigateTo({
+				url: url
+			});
+		},
+
+		toDetail(item) {
+			uni.navigateTo({
+				url: '/pages/circle/circleDetail?item=' + JSON.stringify(item)
+			});
+		},
+
+		click() {
+			this.$emit('click');
+		},
+
+		doThumb(item) {
+			item.index = this.index;
+			this.$emit('doThumb', item);
+		},
+
+		doComment(item, comment) {
+			item.index = this.index;
+			this.$emit('doComment', item, comment);
+		},
+
+		doComment2Com(item, comment) {
+			this.$emit('doComment2Com', item, comment);
+		},
+
+		close(e) {
+			e.stopPropagation();
+			this.$emit('close');
+		}
+	}
+};
+</script>
+
+<style scoped>
+view {
+	flex-direction: column;
+	line-height: 1.5;
+}
+.album {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+}
+.album__avatar {
+	background-color: #fff;
+	padding: 5px;
+	border-radius: 3px;
+}
+.album__content {
+	margin-left: 10px;
+	flex: 1;
+}
+.album__info {
+	margin-bottom: 15upx;
+	display: flex;
+	flex-direction: column;
+}
+.info-name {
+	color: #5786cc;
+	font-size: 30upx;
+	font-weight: bold;
+}
+
+.name{
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.status{
+	color: red;
+	font-size: 28upx;
+}
+
+.info-content {
+	color: #333;
+	font-size: 30upx;
+	padding: 5upx 0 10upx 0;
+}
+.video {
+	position: relative;
+}
+.video-info {
+	width: 280px;
+	height: 200px;
+}
+.video-cover {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 270px;
+	height: 200px;
+}
+.location {
+}
+.location-left {
+	display: flex;
+	flex-direction: row;
+}
+.location-left-name {
+	font-size: 24upx;
+	color: #5786cc;
+}
+.location-left-distance {
+	margin-left: 30upx;
+	font-size: 24upx;
+	color: #5786cc;
+}
+
+.location-right {
+	color: #999;
+	font-size: 24upx;
+}
+
+.time-text {
+	color: #666;
+	font-size: 24upx;
+}
+
+.comment {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 15upx;
+}
+
+.comment-right {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+}
+
+.comment-item {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	margin-left: 40upx;
+	color: #666;
+}
+
+.image-love {
+	width: 32upx;
+	height: 32upx;
+	margin-right: 6upx;
+}
+.image-comment {
+	width: 30upx;
+	height: 30upx;
+	margin-right: 8upx;
+}
+
+.number {
+	color: #666;
+	padding-left: 5upx;
+	font-size: 26upx;
+}
+.yzb {
+	margin-right: 8upx;
+}
+.yzb-pinglun1 {
+}
+.thumb-on {
+	font-size: 32upx;
+	color: red;
+}
+.thumb-off {
+	font-size: 32upx;
+}
+
+.thumb-comment {
+	padding: 20upx;
+}
+.thumbs {
+	padding: 20upx;
+	border-radius: 10upx;
+	background-color: #f5f6fa;
+	display: flex;
+	flex-direction: row;
+}
+.thumbs-icon {
+	margin-right: 10upx;
+	color: #666;
+	/* margin-top: 5upx; */
+}
+
+.thumbs-headers {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	overflow: hidden;
+	white-space: nowrap;
+	flex-wrap: wrap;
+	flex: 1;
+}
+.thumbs-headers-img {
+	margin-left: 10upx;
+	margin-bottom: 10upx;
+}
+
+.thumbs-headers-more {
+	font-size: 30upx;
+	color: #999;
+}
+
+.thumbs-item {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+}
+
+.thumbs-name {
+	font-size: 28upx;
+	color: #5786cc;
+}
+</style>

@@ -1,0 +1,50 @@
+# 开发环境配置示例（复制为 application-dev.yml 后填入真实值）
+# 禁止将含真实密钥的配置提交到仓库
+
+server:
+  port: 8081
+
+spring:
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://127.0.0.1:3306/job-qkl?characterEncoding=UTF-8&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
+          username: ${DB_USERNAME:root}
+          password: ${DB_PASSWORD:root}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+  redis:
+    host: ${REDIS_HOST:127.0.0.1}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+  mail:
+    host: smtp.example.com
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+
+jeecg:
+  signatureSecret: ${JEECG_SIGNATURE_SECRET:please-change-me}
+  uploadType: alioss
+  oss:
+    accessKey: ${OSS_ACCESS_KEY:}
+    secretKey: ${OSS_SECRET_KEY:}
+    endpoint: oss-cn-hangzhou.aliyuncs.com
+    bucketName: your-bucket
+  sms:
+    accessKey: ${SMS_ACCESS_KEY:}
+    secretKey: ${SMS_SECRET_KEY:}
+    sdkAppId: ${SMS_SDK_APP_ID:}
+  wx:
+    appId: ${WX_APP_ID:}
+    appSecret: ${WX_APP_SECRET:}
+  dy:
+    appId: ${DY_APP_ID:}
+    appSecret: ${DY_APP_SECRET:}
+  redisson:
+    address: 127.0.0.1:6379
+    password: ${REDIS_PASSWORD:}
+    enabled: true
+
+chatgpt:
+  apiKey: ${CHATGPT_API_KEY:}
+  apiHost: https://api.openai.com/

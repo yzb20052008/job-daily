@@ -1,0 +1,51 @@
+# ========== 全局默认规则 ==========
+# 仓库内统一使用 LF 换行；Windows 本地检出自动转 CRLF
+* text=auto
+
+# ========== 后端 Java / SpringBoot 文本文件 ==========
+*.java text eol=lf
+*.xml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.properties text eol=lf
+*.sql text eol=lf
+*.vm text eol=lf
+*.ftl text eol=lf
+pom.xml text eol=lf
+
+# ========== 前端 Vue / UniApp 文本文件 ==========
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.vue text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.less text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+# ========== 二进制文件（不解析文本、不转换行） ==========
+# 图片、字体、压缩包、可执行文件、运行库
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.svg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.zip binary
+*.rar binary
+*.7z binary
+*.jar binary
+*.exe binary
+*.dll binary
+*.so binary
+
+# ========== 特殊规则 ==========
+# .gitignore / .gitattributes 自身也按文本处理
+.gitignore text eol=lf
+.gitattributes text eol=lf

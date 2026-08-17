@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.job.ums.mapper.UmsReferrerLogMapper">
+
+    <select id="getReferrerPageList" resultType="org.jeecg.modules.job.ums.entity.UmsReferrerLog" parameterType="org.jeecg.modules.job.ums.entity.UmsReferrerLog">
+        select url.*,
+        su1.avatar as userAvatar,su1.realname as userName,su1.phone as userPhone,
+        su2.avatar as referrerAvatar,su2.realname as referrerName,su2.phone as referrerPhone
+        from ums_referrer_log  url
+        left join sys_user su1 on su1.id=url.member_id
+        left join sys_user su2 on su2.id =url.referrer_id
+        where 1 = 1
+        <if test="paramCondition.referrerId != null and paramCondition.referrerId != ''">
+            and url.referrer_id = #{paramCondition.referrerId}
+        </if>
+        <if test="paramCondition.keyword != null and paramCondition.keyword != ''">
+            and (
+               su1.nickname like CONCAT('%',#{paramCondition.keyword},'%')
+            or su1.phone like CONCAT('%',#{paramCondition.keyword},'%')
+            or su2.nickname like CONCAT('%',#{paramCondition.keyword},'%')
+            or su2.phone like CONCAT('%',#{paramCondition.keyword},'%')
+            )
+        </if>
+        order by url.create_time desc
+    </select>
+
+    <select id="getReferrerCount" resultType="org.jeecg.modules.job.ums.entity.UmsReferrerLog">
+        select SUM(integral) as integralCount,COUNT(1) as totalNumber
+        from ums_referrer_log
+        where 1 = 1
+        <if test="dayStart != null and dayStart != ''">
+            and create_time &gt;= #{dayStart} and create_time &lt;= #{dayEnd}
+        </if>
+        <if test="memberId != null and memberId != ''">
+            and referrer_id = #{memberId}
+        </if>
+    </select>
+
+</mapper>
