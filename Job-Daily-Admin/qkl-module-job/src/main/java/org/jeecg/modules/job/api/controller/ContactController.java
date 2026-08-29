@@ -59,7 +59,7 @@ public class ContactController {
 			boolean result=postContactService.addContact(contact);
 			return Result.ok(result);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}
@@ -80,7 +80,7 @@ public class ContactController {
 			boolean result=postContactService.removeById(contact.getId());
 			return Result.ok(result);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}
@@ -122,7 +122,7 @@ public class ContactController {
 			boolean result=postContactService.updateAgreeState(contact.getId(),contact.getAgreeState(),user.getId());
 			return Result.ok(result);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}

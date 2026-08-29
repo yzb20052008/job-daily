@@ -85,7 +85,8 @@
 					images: '',
 					distance: 0,
 				},
-				clockRange: 500,
+				clockRange: 2000,
+				actionSubmitting: false,
 				upOption: {
 					onScroll: true,
 					auto: false, // 不自动加载
@@ -413,21 +414,29 @@
 			},
 
 			async updateOrderStatus(id, index, status) {
-				let params = {
-					id: id,
+				if (this.actionSubmitting) {
+					return;
 				}
-				let res;
-				if (status == 6) {
-					res = await this.$apis.cancelOrder(params);
-				} else if (status == 1) {
-					res = await this.$apis.confirmOrder(params);
-				} else {
-					params.orderStatus = status;
-					res = await this.$apis.updateOrderStatus(params);
-				}
-				if (res) {
-					uni.$u.toast('操作成功');
-					this.tabs[this.tabIndex].list[index].orderStatus = status + "";
+				this.actionSubmitting = true;
+				try {
+					let params = {
+						id: id,
+					}
+					let res;
+					if (status == 6) {
+						res = await this.$apis.cancelOrder(params);
+					} else if (status == 1) {
+						res = await this.$apis.confirmOrder(params);
+					} else {
+						params.orderStatus = status;
+						res = await this.$apis.updateOrderStatus(params);
+					}
+					if (res) {
+						uni.$u.toast('操作成功');
+						this.tabs[this.tabIndex].list[index].orderStatus = status + "";
+					}
+				} finally {
+					this.actionSubmitting = false;
 				}
 			},
 
@@ -441,6 +450,9 @@
 			},
 
 			async doStartEndWork() {
+				if (this.actionSubmitting) {
+					return;
+				}
 				if (this.form.distance > this.clockRange) {
 					uni.$u.toast('请在工作地点' + this.clockRange + "米范围内打卡");
 					return;
@@ -450,7 +462,10 @@
 					return;
 				}
 				if (!this.form.address) {
-					uni.$u.toast('未获取到当前位置');
+					this.form.address = '当前位置（地址解析暂不可用）';
+				}
+				if (this.form.latitude === '' || this.form.latitude == null) {
+					uni.$u.toast('未获取到定位坐标，请开启位置权限');
 					return;
 				}
 				// 订单状态：0-待确认，1-待开工，2-工作中，3-待结算，4-待评价，5-已完成,6-已取消
@@ -471,13 +486,18 @@
 				}
 				this.form.orderId = this.currentItem.id;
 				this.form.clockType = clockType;
-				let res = await this.$apis.workClock(this.form);
-				if (res) {
-					this.show = false;
-					uni.$u.toast('打卡成功');
-					this.resetForm();
-					this.tabs[this.tabIndex].list[this.currentItem.index].orderStatus = orderStatus + "";
-					this.$forceUpdate();
+				this.actionSubmitting = true;
+				try {
+					let res = await this.$apis.workClock(this.form);
+					if (res) {
+						this.show = false;
+						uni.$u.toast('打卡成功');
+						this.resetForm();
+						this.tabs[this.tabIndex].list[this.currentItem.index].orderStatus = orderStatus + "";
+						this.$forceUpdate();
+					}
+				} finally {
+					this.actionSubmitting = false;
 				}
 			},
 
@@ -537,23 +557,31 @@
 
 			getLocation() {
 				console.log('============getLocation==============');
-				//获取定位信息
+				// 打卡需要地址展示：purpose=address，短距/短时复用逆地理；失败有默认文案
 				loGetLocation(
 					res => {
 						console.log('locateInformation', this.locateInformation);
-						this.form.address = this.locateInformation.address;
-						this.form.latitude = this.locateInformation.location.lat;
-						this.form.longitude = this.locateInformation.location.lng;
-						//计算距离
-						console.log('currentItem==', this.currentItem);
-						this.form.distance = getDistance(this.currentItem.latitude, this.currentItem.longitude, this
-							.form.latitude, this.form.longitude);
+						const location = (res && res.location) || {};
+						const lat = location.lat != null ? location.lat : res.latitude;
+						const lng = location.lng != null ? location.lng : res.longitude;
+						this.form.address = (res && res.address) || '当前位置（地址解析暂不可用）';
+						this.form.latitude = lat;
+						this.form.longitude = lng;
+						if (this.currentItem && this.currentItem.latitude != null) {
+							this.form.distance = getDistance(
+								this.currentItem.latitude,
+								this.currentItem.longitude,
+								this.form.latitude,
+								this.form.longitude
+							);
+						}
 					},
 					err => {
 						console.log('err==', err);
+						this.form.address = this.form.address || '当前位置（定位失败，请检查权限）';
+						uni.$u.toast('定位失败，请开启位置权限后重试');
 					},
-					true,
-					true
+					{ purpose: 'address', isOpenSetting: true }
 				);
 			},
 
@@ -577,6 +605,7 @@
 				}
 				if (this.userInfo.token) {
 					params.userId = this.userInfo.id;
+					params.roleCode = this.userInfo.memberRole;
 				} else {
 					return;
 				}
@@ -584,8 +613,8 @@
 					params: params
 				});
 				if (res) {
-					let count = res.privateCount + res.violationCount + res.publicCount + res.orderCount + res
-						.financeCount;
+					let count = (res.privateCount || 0) + (res.violationCount || 0) + (res.publicCount || 0)
+						+ (res.orderCount || 0) + (res.financeCount || 0);
 					if (count > 0) {
 						uni.setTabBarBadge({
 							index: 1,

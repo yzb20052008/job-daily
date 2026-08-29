@@ -4,7 +4,7 @@
 		<mescroll-uni :fixed="false" height="100%" width="100%" ref="mescrollRef" @init="mescrollInit" :up="upOption"
 			@down="downCallback" @up="upCallback" bottom="50upx">
 			<view class="item" v-for="(item,index) in list" :key="index" @click="toDetail(item)">
-				<text class="time">{{$u.timeFrom(new Date(item.createTime).getTime())}}</text>
+				<text class="time">{{$u.timeFrom(new Date((item.createTime||'').replace(/-/g,'/')).getTime())}}</text>
 				<view class="info">
 					<image :src="item.avatar" mode="aspectFill"></image>
 					<view class="title"><text v-if="item.setTop" class="set-top">置顶</text><text

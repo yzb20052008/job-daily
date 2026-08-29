@@ -7,10 +7,13 @@ import org.jeecg.modules.job.constant.BizConstants;
 import org.jeecg.modules.job.integral.entity.IntegralGoodsEffect;
 import org.jeecg.modules.job.integral.mapper.IntegralGoodsEffectMapper;
 import org.jeecg.modules.job.integral.service.IIntegralGoodsEffectService;
+import org.jeecg.modules.job.job.entity.JobPost;
+import org.jeecg.modules.job.job.service.IJobPostService;
 import org.springframework.stereotype.Service;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
+import javax.annotation.Resource;
 import java.util.Date;
 import java.util.List;
 
@@ -22,6 +25,9 @@ import java.util.List;
  */
 @Service
 public class IntegralGoodsEffectServiceImpl extends ServiceImpl<IntegralGoodsEffectMapper, IntegralGoodsEffect> implements IIntegralGoodsEffectService {
+
+    @Resource
+    private IJobPostService postService;
 
     @Override
     public boolean addOrUpdateEffect(IntegralGoodsEffect effect) {
@@ -55,11 +61,11 @@ public class IntegralGoodsEffectServiceImpl extends ServiceImpl<IntegralGoodsEff
             //更新状态
             effect.setStatus(0);
             this.updateById(effect);
-            //更新职位状态
-            if (effect.getGoodsCode().equals(BizConstants.JF_CODE_TOPPING)){//置顶
-//                positionMapper.updateById(new RmsCompanyPosition().setId(effect.getDataId()).setIfTopping(0));
-            }else if (effect.getGoodsCode().equals(BizConstants.JF_CODE_EYE)){//加粗
-//                positionMapper.updateById(new RmsCompanyPosition().setId(effect.getDataId()).setIfBold(0));
+            //回写岗位展示标记
+            if (BizConstants.JF_CODE_TOPPING.equals(effect.getGoodsCode())){
+                postService.updateById(new JobPost().setId(effect.getDataId()).setIfTopping(0));
+            }else if (BizConstants.JF_CODE_EYE.equals(effect.getGoodsCode())){
+                postService.updateById(new JobPost().setId(effect.getDataId()).setIfBold(0));
             }
         }
         return true;

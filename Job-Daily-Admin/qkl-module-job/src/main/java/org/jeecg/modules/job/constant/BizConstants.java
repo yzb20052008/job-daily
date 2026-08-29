@@ -1,33 +1,51 @@
 package org.jeecg.modules.job.constant;
 
+/**
+ * 业务常量（兼容历史命名）。
+ * <p>日结主链路请优先使用本接口中订单/岗位/资金/积分事件段；
+ * 圈子/校园招聘遗留常量已标记 {@code @Deprecated}，勿再新增引用。</p>
+ */
 public interface BizConstants {
 
-    /** 普通成员*/
+    // ========== 遗留：圈子角色（无引用，勿再用） ==========
+    /** @deprecated 圈子遗留 */
+    @Deprecated
     String MEMBER_ROLE_NORMAL  = "1";
-    /** 管理员 */
+    /** @deprecated 圈子遗留 */
+    @Deprecated
     String MEMBER_ROLE_MANAGER  = "2";
-    /** 圈主 */
+    /** @deprecated 圈子遗留 */
+    @Deprecated
     String MEMBER_ROLE_ADMIN  = "3";
 
-    /** 申请状态：1-待审核，2-同意，3-拒绝，4-过期*/
-    /** 取消*/
+    // ========== 遗留：申请/激活状态（旧招聘语义） ==========
+    /** @deprecated 旧申请流 */
+    @Deprecated
     Integer APPLY_STATUS_CANCEL  = 0;
-    /** 申请*/
+    /** @deprecated 旧申请流 */
+    @Deprecated
     Integer APPLY_STATUS_APPLY  = 1;
-    /** 同意 */
+    /** @deprecated 旧申请流 */
+    @Deprecated
     Integer APPLY_STATUS_AGREE  = 2;
-    /** 拒绝 */
+    /** @deprecated 旧申请流 */
+    @Deprecated
     Integer APPLY_STATUS_REFUSE  = 3;
-    /** 过期 */
+    /** @deprecated 旧申请流 */
+    @Deprecated
     Integer APPLY_STATUS_DELAY  = 4;
 
-    /**默认-未激活*/
+    /** @deprecated 旧激活态 */
+    @Deprecated
     String ACTIVE_STATUS_DEFAULT="0";
-    /**已激活*/
+    /** @deprecated 旧激活态 */
+    @Deprecated
     String ACTIVE_STATUS_ACTIVE="1";
-    /**已作废*/
+    /** @deprecated 旧激活态 */
+    @Deprecated
     String ACTIVE_STATUS_INVALID="2";
-    /**已兑换*/
+    /** @deprecated 旧激活态 */
+    @Deprecated
     String ACTIVE_STATUS_USED="3";
 
 
@@ -117,65 +135,45 @@ public interface BizConstants {
      *简历填写100%
      */
     String JF_RESUME_100= "jf_resume_100";
-    /**
-     *推荐学校注册
-     */
-    String JF_REFER_SCHOOL="jf_refer_school";
-    /**
-     *推荐企业注册
-     */
+    /** 推荐企业注册（日结邀请仍可能使用） */
     String JF_REFER_COMPANY="jf_refer_company";
-    /**
-     *推荐导师注册
-     */
+    /** @deprecated 校园招聘遗留 */
+    @Deprecated
+    String JF_REFER_SCHOOL="jf_refer_school";
+    /** @deprecated 校园招聘遗留 */
+    @Deprecated
     String JF_REFER_TEACHER="jf_refer_teacher";
-    /**
-     *推荐专家注册
-     */
+    /** @deprecated 校园招聘遗留 */
+    @Deprecated
     String JF_REFER_PLANER="jf_refer_planer";
-    /**
-     *简历投递成功
-     */
+    /** @deprecated 校园招聘遗留 */
+    @Deprecated
     String JF_RESUME_APPLY_READ="jf_resume_apply_read";
-    /**
-     *推荐用户注册
-     */
+    /** 推荐用户注册 */
     String  JF_REFER_USER="jf_refer_user";
-    /**
-     *投递被录用
-     */
+    /** @deprecated 校园招聘遗留 */
+    @Deprecated
     String JF_RESUME_APPLY_SUCCESS="jf_resume_apply_success";
-    /**
-     *发布新岗位
-     */
+    /** 发布新岗位（配置分值，发奖接线可选） */
     String JF_POST_ADD="jf_post_add";
-    /**
-     *HR主动聊天
-     */
+    /** @deprecated HR 招聘遗留，未接线 */
+    @Deprecated
     String JF_HR_CHAT="jf_hr_chat";
-    /**
-     *HR1小时答复
-     */
+    /** @deprecated HR 招聘遗留，未接线 */
+    @Deprecated
     String JF_HR_REPLY_1="jf_hr_reply_1";
-    /**
-     *HR4小时回复
-     */
+    /** @deprecated HR 招聘遗留，未接线 */
+    @Deprecated
     String JF_HR_REPLY_4="jf_hr_reply_4";
-    /**
-     *HR1天内回复
-     */
+    /** @deprecated HR 招聘遗留，未接线 */
+    @Deprecated
     String JF_HR_REPLY_24="jf_hr_reply_24";
-    /**
-     *HR3天内答复
-     */
+    /** @deprecated HR 招聘遗留，未接线 */
+    @Deprecated
     String  JF_HR_REPLY_72="jf_hr_reply_72";
-    /**
-     *企业认证通过
-     */
+    /** 企业认证通过（配置分值） */
     String JF_COMPANY_VERIFY="jf_company_verify";
-    /**
-     *实名认证通过
-     */
+    /** 实名认证通过 */
     String JF_USER_VERIFY="jf_user_verify";
     /**
      *每日积分阈值
@@ -196,6 +194,31 @@ public interface BizConstants {
      *拨号消费积分
      */
     String JF_CALL="jf_call";
+
+    /**
+     * 打卡允许半径（米），与前端 clock_range 同源
+     */
+    String CLOCK_RANGE="clock_range";
+
+    /**
+     * 腾讯地图 WebService / JS Key（可下发前端渲染地图）
+     */
+    String MAP_KEY="map_key";
+
+    /**
+     * 腾讯地图签名密钥 SK（仅服务端使用，勿下发客户端）
+     */
+    String MAP_SK="map_sk";
+
+    /**
+     * 待评价超时自动完结（小时）
+     */
+    String EVALUATE_TIMEOUT_HOURS="evaluate_timeout_hours";
+
+    /**
+     * 待开工已过结束时间是否自动取消：1=开（默认），0=关
+     */
+    String ORDER_NO_START_AFTER_END="order_no_start_after_end";
 
     /**
      * 拨号记录确认时长
@@ -231,7 +254,8 @@ public interface BizConstants {
     String JF_CODE_TOPPING="topping";//置顶卡
     String JF_CODE_PERSPECTIVE="perspective";//透视卡
     String JF_CODE_REFRESH="refresh";//刷新卡
-    String JF_CODE_AI="ai";//AI卡
+    /** AI卡（已下线，保留常量用于拦截购买） */
+    String JF_CODE_AI="ai";
 
     /**待审核*/
     Integer AUTH_STATUS_DEFAULT=0;
@@ -295,16 +319,22 @@ public interface BizConstants {
     String RECHARGE_STATUS_FAILURE  = "2";
 
 
-    /** 提现状态 0-待审核，1-通过，2-失败*/
-    /** 未支付*/
+    /** 提现审核状态：0-待审核，1-审核通过(打款中/已到账看 transfer_status)，2-失败(含拒绝/转账失败解冻)*/
     Integer WITHDRAW_STATUS_DEFAULT  = 0;
-    /** 支付成功*/
+    /** 审核通过（到账以 transfer_status=SUCCESS 为准）*/
     Integer WITHDRAW_STATUS_SUCCESS  = 1;
-    /** 支付失败 */
+    /** 失败（审核拒绝或转账失败） */
     Integer WITHDRAW_STATUS_FAILURE  = 2;
 
+    /** base_config：单次提现最低金额 */
+    String WITHDRAW_MIN = "withdraw_min";
+    /** base_config：单次提现最高金额 */
+    String WITHDRAW_MAX = "withdraw_max";
+    /** base_config：当日提现最高金额 */
+    String WITHDRAW_DAY_MAX = "withdraw_day_max";
 
-    /** 交易类型 1-工资收入，2-工资支出，3-充值积分，4-用户提现*/
+
+    /** 交易类型 1-工资收入，2-工资支出，3-充值积分，4-用户提现，5-余额充值*/
     /** 工资收入*/
     String TRADE_TYPE_SALARY_IN  = "1";
     /** 工资支出*/
@@ -313,6 +343,8 @@ public interface BizConstants {
     String TRADE_TYPE_RECHARGE_INTEGRAL  = "3";
     /** 用户提现 */
     String TRADE_TYPE_WITHDRAW  = "4";
+    /** 余额充值 */
+    String TRADE_TYPE_RECHARGE_BALANCE = "5";
 
 
     /** 打卡类型 1-上班，2-下班/

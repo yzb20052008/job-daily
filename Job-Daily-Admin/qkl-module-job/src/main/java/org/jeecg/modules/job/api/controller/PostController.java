@@ -50,7 +50,7 @@ public class PostController {
                                       @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
                                       @RequestParam(name="pageSize", defaultValue="10") Integer pageSize
     ) {
-//        param.setPostStatus(BizConstants.POST_STATUS_RUNNING);
+        param.setPostStatus(BizConstants.POST_STATUS_RUNNING);
         IPage<Map<String,Object>> pageInfo= postService.getPostMapList(new Page<>(pageNo,pageSize),param);
         return Result.OK(pageInfo);
     }
@@ -81,8 +81,8 @@ public class PostController {
             JobPost postVo=postService.getById(id);
             return Result.OK(postVo);
         } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error(e.getMessage());
+			log.error("操作异常", e);
+			return Result.error(e.getMessage());
         }
     }
 
@@ -97,8 +97,8 @@ public class PostController {
             JobPostVo postVo=postService.getPostDetail(id,userId);
             return Result.OK(postVo);
         } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error(e.getMessage());
+			log.error("操作异常", e);
+			return Result.error(e.getMessage());
         }
     }
 

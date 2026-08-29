@@ -11,7 +11,7 @@
 				</view>
 			</view>
 			<view class="y-time">
-				<text>工作时间：{{$u.timeFormat (new Date(item.startTime).getTime(),'mm-dd hh:MM')}} 至 {{$u.timeFormat (new Date(item.endTime).getTime(),'mm-dd hh:MM')}}</text>
+				<text>工作时间：{{$u.timeFormat(item.startTime,'mm-dd hh:MM')}} 至 {{$u.timeFormat(item.endTime,'mm-dd hh:MM')}}</text>
 			</view>
 			<view class="y-status">
 				<view class="tags-item" v-if="item.postStatus==2">

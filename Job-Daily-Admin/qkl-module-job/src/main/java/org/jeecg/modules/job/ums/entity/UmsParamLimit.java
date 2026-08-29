@@ -36,18 +36,10 @@ public class UmsParamLimit implements Serializable {
 	@TableId(type = IdType.ASSIGN_ID)
     @ApiModelProperty(value = "消息id")
     private java.lang.String id;
-	/**回复内容*/
-	@Excel(name = "回复内容", width = 15)
-    @ApiModelProperty(value = "回复内容")
+	/**用户ID*/
+	@Excel(name = "用户ID", width = 15)
+    @ApiModelProperty(value = "用户ID")
     private java.lang.String userId;
-	/**AI可用次数*/
-	@Excel(name = "AI可用次数", width = 15)
-    @ApiModelProperty(value = "AI可用次数")
-    private java.lang.Integer aiNum;
-	/**AI已用次数*/
-	@Excel(name = "AI已用次数", width = 15)
-    @ApiModelProperty(value = "AI已用次数")
-    private java.lang.Integer usedAiNum;
 	/**简历投递次数*/
 	@Excel(name = "简历投递次数", width = 15)
     @ApiModelProperty(value = "简历投递次数")

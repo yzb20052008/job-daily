@@ -74,6 +74,9 @@
             <if test="params.postId != null and params.postId != ''">
                 AND od.post_id = #{params.postId}
             </if>
+            <if test="params.postUserId != null and params.postUserId != ''">
+                AND od.post_user_id = #{params.postUserId}
+            </if>
             <if test="params.keyword != null and params.keyword != ''">
                 AND (jp.content like CONCAT('%',#{params.keyword},'%')
                 or jp.title like CONCAT('%',#{params.keyword},'%')

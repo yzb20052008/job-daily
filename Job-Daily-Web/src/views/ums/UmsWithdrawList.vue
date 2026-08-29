@@ -85,25 +85,19 @@
           <a style="color: green;" v-if="record.withdrawStatus==0" @click="handleVerify(record,1)">通过</a>
           <a-divider type="vertical" v-if="record.withdrawStatus==0"/>
           <a style="color: red;" v-if="record.withdrawStatus==0" @click="handleVerify(record,2)">拒绝</a>
-          <!--  <a-dropdown>
-            <a class="ant-dropdown-link">更多 <a-icon type="down" /></a>
-            <a-menu slot="overlay">
-              <a-menu-item>
-                <a @click="handleDetail(record)">详情</a>
-              </a-menu-item>
-              <a-menu-item>
-                <a-popconfirm title="确定删除吗?" @confirm="() => handleDelete(record.id)">
-                  <a>删除</a>
-                </a-popconfirm>
-              </a-menu-item>
-            </a-menu>
-          </a-dropdown> -->
+          <a-divider type="vertical" v-if="needSyncTransfer(record)"/>
+          <a v-if="needSyncTransfer(record)" @click="handleSyncTransfer(record)">查单回写</a>
+          <a-divider type="vertical" v-if="needRetryTransfer(record)"/>
+          <a style="color: #fa8c16;" v-if="needRetryTransfer(record)" @click="handleRetryTransfer(record)">重发转账</a>
+          <a-divider type="vertical" v-if="needCloseAbnormal(record)"/>
+          <a style="color: #cf1322;" v-if="needCloseAbnormal(record)" @click="handleCloseAbnormal(record)">关闭解冻</a>
         </span>
 
       </a-table>
     </div>
 
-    <a-modal :title="modalTitle" :visible="showModal" @ok="ok" @cancel="showModal = false" okText="确认" cancelText="关闭">
+    <a-modal :title="modalTitle" :visible="showModal" :confirmLoading="confirmLoading"
+             @ok="ok" @cancel="onModalCancel" okText="确认" cancelText="关闭">
       <p>{{ modalContent }}</p>
       <a-textarea v-if="withdrawStatus==2" v-model="reason" rows="4" placeholder="请输入审核意见" />
     </a-modal>
@@ -140,9 +134,11 @@
 
         modalTitle: '温馨提示',
         showModal: false,
-        modalContent: '确认已打款？',
+        modalContent: '确认审核通过？',
         selectItem: {},
         withdrawStatus: 0,
+        reason: '',
+        confirmLoading: false,
 
         // 表头
         columns: [
@@ -225,11 +221,16 @@
             dataIndex: 'createTime'
           },
           {
+            title: '商户单号',
+            align: "center",
+            dataIndex: 'outBillNo'
+          },
+          {
             title: '操作',
             dataIndex: 'action',
             align: "center",
             fixed: "right",
-            width: 147,
+            width: 220,
             scopedSlots: {
               customRender: 'action'
             }
@@ -242,6 +243,9 @@
           exportXlsUrl: "/ums/umsWithdraw/exportXls",
           importExcelUrl: "ums/umsWithdraw/importExcel",
           updateStatus: "ums/umsWithdraw/updateStatus",
+          syncTransfer: "/ops/workbench/syncWithdrawTransfer",
+          closeAbnormal: "/ums/umsWithdraw/closeAbnormal",
+          retryTransfer: "/ums/umsWithdraw/retryTransfer",
         },
         dictOptions: {},
         superFieldList: [],
@@ -256,25 +260,52 @@
       },
     },
     methods: {
+      /** 审核通过且转账未终态，有商户单号时可查单 */
+      needSyncTransfer(record) {
+        if (!record || record.withdrawStatus != 1 || !record.outBillNo) {
+          return false
+        }
+        const s = record.transferStatus
+        return !s || s === '' || ['ACCEPTED', 'PROCESSING', 'WAIT_USER_CONFIRM', 'TRANSFERING', 'CANCELING'].indexOf(s) >= 0
+      },
+      /** 审核通过、有单号、尚无转账态：可重发（先查单再发起） */
+      needRetryTransfer(record) {
+        return record && record.withdrawStatus == 1 && record.outBillNo
+          && (!record.transferStatus || record.transferStatus === '')
+      },
+      /** 审核通过但无商户单号的脏数据，可关闭解冻 */
+      needCloseAbnormal(record) {
+        return record && record.withdrawStatus == 1 && !record.outBillNo
+      },
+      onModalCancel() {
+        if (this.confirmLoading) {
+          return;
+        }
+        this.showModal = false;
+        this.reason = '';
+      },
 
       handleVerify(record, status) {
         //1-通过，2-拒绝
         this.selectItem = record;
         this.withdrawStatus = status;
-        if(status==1){//同意
-          this.modalContent="审核通过，已打款？"
-        }else if(status==2){//拒绝
-           this.modalContent="审核不通过"
+        this.reason = '';
+        if (status == 1) {
+          this.modalContent = '确认审核通过？通过后将发起微信转账，请确认账号无误。'
+        } else if (status == 2) {
+          this.modalContent = '确认审核不通过？拒绝后将解冻用户余额。'
         }
-         this.showModal = true;
+        this.showModal = true;
       },
 
       ok() {
+        if (this.confirmLoading) {
+          return;
+        }
         if (this.withdrawStatus == 2 && !this.reason) {
           this.$message.warning('请输入审核意见');
           return;
         }
-        this.showModal = false;
         this.updateStatus();
       },
 
@@ -291,6 +322,8 @@
           .then(res => {
             if (res.success) {
               that.$message.success(res.message);
+              that.showModal = false;
+              that.reason = '';
               that.loadData();
             } else {
               that.$message.warning(res.message);
@@ -301,6 +334,67 @@
           });
       },
 
+      handleSyncTransfer(record) {
+        const that = this
+        this.loading = true
+        postAction(this.url.syncTransfer, { outBillNo: record.outBillNo })
+          .then(res => {
+            if (res && res.success) {
+              that.$message.success('查单成功，状态：' + ((res.result && res.result.state) || '已回写'))
+              that.loadData()
+            } else {
+              that.$message.error((res && res.message) || '查单失败')
+            }
+          })
+          .catch(() => that.$message.error('查单请求失败'))
+          .finally(() => {
+            that.loading = false
+          })
+      },
+
+      handleRetryTransfer(record) {
+        const that = this
+        this.$confirm({
+          title: '重新发起转账？',
+          content: '将先查微信是否已有该单，无单号记录时再发起；请勿在渠道已付款时重复操作。',
+          onOk() {
+            that.loading = true
+            return postAction(that.url.retryTransfer, { id: record.id })
+              .then(res => {
+                if (res && res.success) {
+                  that.$message.success(res.message || '已发起')
+                  that.loadData()
+                } else {
+                  that.$message.error((res && res.message) || '发起失败')
+                }
+              })
+              .finally(() => {
+                that.loading = false
+              })
+          }
+        })
+      },
+
+      handleCloseAbnormal(record) {
+        const that = this
+        this.$confirm({
+          title: '确认关闭异常提现？',
+          content: '将解冻金额并标记失败，仅适用于无商户单号的脏数据。',
+          onOk() {
+            return postAction(that.url.closeAbnormal, {
+              id: record.id,
+              reason: '提现列表关闭：无转账单号异常单'
+            }).then(res => {
+              if (res && res.success) {
+                that.$message.success('已关闭并解冻')
+                that.loadData()
+              } else {
+                that.$message.error((res && res.message) || '操作失败')
+              }
+            })
+          }
+        })
+      },
 
       initDictConfig() {},
       getSuperFieldList() {

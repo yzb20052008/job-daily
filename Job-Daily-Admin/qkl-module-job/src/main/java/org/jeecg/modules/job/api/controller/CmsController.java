@@ -84,7 +84,7 @@ public class CmsController {
 			}
 			return Result.ok();
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}
@@ -111,7 +111,7 @@ public class CmsController {
 			List<CmsArticles> list=articlesService.list(queryWrapper);
 			return Result.ok(list);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}
@@ -132,7 +132,7 @@ public class CmsController {
 			List<CmsCategory> list= categoryService.getCategoryChilds(categoryCode);
 			return Result.ok(list);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}
@@ -153,7 +153,7 @@ public class CmsController {
 			boolean result=feedbackService.save(cmsFeedback);
 			return Result.ok(result);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}
@@ -171,11 +171,16 @@ public class CmsController {
 												   @RequestParam(name="plat", required = false) String plat,
 												   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
 												   @RequestParam(name="type", defaultValue="0") Integer type,
+												   @RequestParam(name="roleCode", required = false) String roleCode,
 												   @RequestParam(name="pageSize", defaultValue="20") Integer pageSize) {
-		QueryWrapper queryWrapper=new QueryWrapper(new CmsNotice().setStatus(1));
+		QueryWrapper<CmsNotice> queryWrapper=new QueryWrapper<>(new CmsNotice().setStatus(1));
 		queryWrapper.eq("type",type);
 		if(type!=0){
 			queryWrapper.eq("user_id",userId);
+		}
+		// 订单动态必须按当前身份过滤：同一用户可兼老板/工人，不能串台
+		if (type != null && type == 1 && oConvertUtils.isNotEmpty(roleCode)) {
+			queryWrapper.eq("role_code", roleCode);
 		}
 		queryWrapper.orderByDesc("set_top");
 		queryWrapper.orderByDesc("create_time");
@@ -192,7 +197,14 @@ public class CmsController {
 					readService.save(new CmsNoticeRead().setNoticeId(item.getId()).setUserId(userId));
 				}
 				if (type==1){//订单动态
-					item.setPostTitle(postService.getById(item.getDataId()).getTitle());
+					try {
+						org.jeecg.modules.job.job.entity.JobPost post = postService.getById(item.getDataId());
+						if (post != null) {
+							item.setPostTitle(post.getTitle());
+						}
+					} catch (Exception e) {
+						log.warn("填充订单通知岗位标题失败 noticeId={}", item.getId(), e);
+					}
 				}else if(type==2 && item.getExcerpt()!=null){//送达凭证
 
 				}
@@ -216,13 +228,21 @@ public class CmsController {
 			Map<String,Object> map=new HashMap<>();
 			CmsNotice notice1 = null,notice2 = null;
 			int publicCount=noticeService.getUnReadCount(null,null,0);
-			int orderCount=noticeService.getUnReadCount(roleCode,userId,1);
+			int orderCount = oConvertUtils.isNotEmpty(roleCode)
+					? noticeService.getUnReadCount(roleCode, userId, 1) : 0;
 			int privateCount=noticeService.getUnReadCount(null,userId,2);
 			int financeCount=noticeService.getUnReadCount(null,userId,3);
 			int violationCount=noticeService.getUnReadCount(null,userId,4);
 			map.put("totalCount",publicCount+orderCount+privateCount+financeCount+violationCount);
-			//查询最近的一条通知
-			List<CmsNotice> list2=noticeService.list(new QueryWrapper<CmsNotice>().eq("user_id",userId).apply("((type=1 and role_code='"+roleCode+"') or type=2 or type =3 or type = 4)").orderByDesc("create_time").last("limit 1"));
+			//查询最近的一条通知（订单动态按当前身份隔离）
+			QueryWrapper<CmsNotice> recentQw = new QueryWrapper<CmsNotice>().eq("user_id", userId);
+			if (oConvertUtils.isNotEmpty(roleCode)) {
+				recentQw.and(w -> w.nested(n -> n.eq("type", 1).eq("role_code", roleCode))
+						.or().in("type", 2, 3, 4));
+			} else {
+				recentQw.in("type", 2, 3, 4);
+			}
+			List<CmsNotice> list2 = noticeService.list(recentQw.orderByDesc("create_time").last("limit 1"));
 			if (list2.size()==1){
 				notice1=list2.get(0);
 			}
@@ -252,7 +272,7 @@ public class CmsController {
 			}
 			return Result.ok(map);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}
@@ -274,7 +294,9 @@ public class CmsController {
 				map.put("publicCount",publicCount);
 			}else{
 				int publicCount=noticeService.getUnReadCount(null,null,0);
-				int orderCount=noticeService.getUnReadCount(roleCode,userId,1);
+				// 订单未读按身份隔离；未传 roleCode 时不计订单未读，避免老板/工人串台
+				int orderCount = oConvertUtils.isNotEmpty(roleCode)
+						? noticeService.getUnReadCount(roleCode, userId, 1) : 0;
 				int privateCount=noticeService.getUnReadCount(null,userId,2);
 				int financeCount=noticeService.getUnReadCount(null,userId,3);
 				int violationCount=noticeService.getUnReadCount(null,userId,4);
@@ -283,13 +305,19 @@ public class CmsController {
 				map.put("privateCount",privateCount);
 				map.put("financeCount",financeCount);
 				map.put("violationCount",violationCount);
-				//查询最近的一条订单通知
-				List<CmsNotice> list2=noticeService.list(new QueryWrapper<CmsNotice>().eq("user_id",userId).eq("type",1).eq("role_code",roleCode).orderByDesc("create_time").last("limit 1"));
-				if (list2.size()==1){
-					map.put("orderDesc",list2.get(0).getTitle());
-					map.put("orderTime",list2.get(0).getCreateTime());
-				}else{
-					map.put("orderDesc","暂无消息");
+				//查询最近的一条订单通知（按当前身份）
+				if (oConvertUtils.isNotEmpty(roleCode)) {
+					List<CmsNotice> list2 = noticeService.list(new QueryWrapper<CmsNotice>()
+							.eq("user_id", userId).eq("type", 1).eq("role_code", roleCode)
+							.orderByDesc("create_time").last("limit 1"));
+					if (list2.size() == 1) {
+						map.put("orderDesc", list2.get(0).getTitle());
+						map.put("orderTime", list2.get(0).getCreateTime());
+					} else {
+						map.put("orderDesc", "暂无消息");
+					}
+				} else {
+					map.put("orderDesc", "暂无消息");
 				}
 				//查询最近的一条私信通知
 				List<CmsNotice> list3=noticeService.list(new QueryWrapper<CmsNotice>().eq("user_id",userId).eq("type",2).orderByDesc("create_time").last("limit 1"));
@@ -326,7 +354,7 @@ public class CmsController {
 			}
 			return Result.ok(map);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}
@@ -347,7 +375,7 @@ public class CmsController {
 			boolean result=noticeService.setAllRead(userId);
 			return Result.ok(result);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}
@@ -365,7 +393,7 @@ public class CmsController {
 			org.jeecg.modules.job.cms.entity.CmsNotice notice=noticeService.getById(id);
 			return Result.ok(notice);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}
@@ -413,7 +441,7 @@ public class CmsController {
 			CmsNews news=newsService.getById(id);
 			return Result.ok(news);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}

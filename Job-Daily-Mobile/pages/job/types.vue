@@ -302,6 +302,9 @@
 		z-index: 999;
 		width: 100%;
 		padding: 30upx;
+		/* 全面屏底部安全区（须在 padding 简写之后） */
+		padding-bottom: calc(30upx + constant(safe-area-inset-bottom));
+		padding-bottom: calc(30upx + env(safe-area-inset-bottom));
 		box-sizing: border-box;
 		background-color: #fff;
 		box-shadow: 0 0 20upx rgba(0, 0, 0, 0.15);

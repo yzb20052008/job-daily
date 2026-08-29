@@ -1,6 +1,7 @@
 package org.jeecg.modules.job.integral.service.impl;
 
 import cn.hutool.core.date.DateUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.jeecg.common.system.api.ISysBaseAPI;
@@ -9,6 +10,8 @@ import org.jeecg.common.util.DateUtils;
 import org.jeecg.modules.job.base.entity.BaseConfig;
 import org.jeecg.modules.job.base.service.IBaseConfigService;
 import org.jeecg.modules.job.constant.BizConstants;
+import org.jeecg.modules.job.constant.BizErrorCodes;
+import org.jeecg.modules.job.exception.BizException;
 import org.jeecg.modules.job.integral.entity.IntegralLog;
 import org.jeecg.modules.job.integral.mapper.IntegralLogMapper;
 import org.jeecg.modules.job.integral.service.IIntegralLogService;
@@ -105,7 +108,7 @@ public class IntegralLogServiceImpl extends ServiceImpl<IntegralLogMapper, Integ
         //更新用户积分
         LoginUser user=sysBaseAPI.getUserById(memberId);
         if(user.getIntegral() < integral){
-            throw new RuntimeException("操作失败,积分不足");
+            throw BizException.of(BizErrorCodes.APPLY_INTEGRAL_SHORT);
         }
         user.setIntegral(user.getIntegral()-integral);
 //        user.setTotalIntegral(user.getTotalIntegral() - integral);
@@ -119,6 +122,48 @@ public class IntegralLogServiceImpl extends ServiceImpl<IntegralLogMapper, Integ
         integralLog.setDataId(dataId);
         integralLog.setRemark(remark+integral);
         return this.save(integralLog);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public boolean refundApplyIntegral(String memberId, String orderId) {
+        if (memberId == null || orderId == null) {
+            return false;
+        }
+        // 幂等：已退回则跳过
+        long refunded = this.count(new QueryWrapper<IntegralLog>()
+                .eq("user_id", memberId)
+                .eq("data_id", orderId)
+                .eq("if_add", 1)
+                .like("remark", "报名取消退回"));
+        if (refunded > 0) {
+            return true;
+        }
+        IntegralLog reduce = this.getOne(new QueryWrapper<IntegralLog>()
+                .eq("user_id", memberId)
+                .eq("data_id", orderId)
+                .eq("if_add", 0)
+                .orderByDesc("create_time")
+                .last("LIMIT 1"));
+        if (reduce == null || reduce.getIntegral() == null
+                || reduce.getIntegral().compareTo(BigDecimal.ZERO) <= 0) {
+            return false;
+        }
+        int amount = reduce.getIntegral().intValue();
+        LoginUser user = sysBaseAPI.getUserById(memberId);
+        if (user == null) {
+            return false;
+        }
+        user.setIntegral(user.getIntegral() + amount);
+        sysBaseAPI.updateUserInfo(user);
+        IntegralLog refundLog = new IntegralLog();
+        refundLog.setUserId(memberId);
+        refundLog.setIfAdd(1);
+        refundLog.setIntegral(new BigDecimal(amount));
+        refundLog.setIntegralResource(BizConstants.INTEGRAL_RESOURCE_RECHARGE);
+        refundLog.setDataId(orderId);
+        refundLog.setRemark("报名取消退回积分：" + amount);
+        return this.save(refundLog);
     }
 
     @Override

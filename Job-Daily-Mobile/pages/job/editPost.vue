@@ -647,6 +647,10 @@
 		background: #fff;
 		position: fixed;
 		bottom: 0;
+		/* 全面屏底部安全区 */
+		padding-bottom: constant(safe-area-inset-bottom);
+		padding-bottom: env(safe-area-inset-bottom);
+
 		z-index: 99;
 
 		.throttle {

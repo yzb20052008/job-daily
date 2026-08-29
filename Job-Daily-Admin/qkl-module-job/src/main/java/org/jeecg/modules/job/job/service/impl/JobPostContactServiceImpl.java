@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.shiro.SecurityUtils;
 import org.jeecg.common.system.vo.LoginUser;
+import org.jeecg.common.util.oConvertUtils;
 import org.jeecg.modules.job.base.entity.BaseConfig;
 import org.jeecg.modules.job.base.service.IBaseConfigService;
 import org.jeecg.modules.job.constant.BizConstants;
@@ -15,6 +16,7 @@ import org.jeecg.modules.job.job.entity.JobPostContact;
 import org.jeecg.modules.job.job.mapper.JobPostContactMapper;
 import org.jeecg.modules.job.job.service.IJobOrderService;
 import org.jeecg.modules.job.job.service.IJobPostContactService;
+import org.jeecg.modules.job.rule.service.IVipPrivilegeService;
 import org.quartz.Job;
 import org.springframework.stereotype.Service;
 
@@ -41,18 +43,27 @@ public class JobPostContactServiceImpl extends ServiceImpl<JobPostContactMapper,
     private IJobOrderService orderService;
     @Resource
     private IBaseConfigService configService;
+    @Resource
+    private IVipPrivilegeService vipPrivilegeService;
 
     @Transactional
     @Override
     public boolean addContact(JobPostContact contact) {
+        LoginUser user = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+        // 服务端重算是否免费，禁止信任客户端 ifFree
+        String actorId = BizConstants.ROLE_CODE_MEMBER.equals(contact.getRoleCode())
+                ? contact.getUserId() : contact.getPostUserId();
+        if (oConvertUtils.isEmpty(actorId) && user != null) {
+            actorId = user.getId();
+        }
+        boolean free = vipPrivilegeService.isContactFree(actorId, contact.getRoleCode(), contact.getPostId());
+        contact.setIfFree(free);
         this.save(contact);
-        if (contact.isIfFree()){
-            //免费，不扣积分
+        if (free) {
             return true;
         }
-        //扣除积分
-        LoginUser user = (LoginUser) SecurityUtils.getSubject().getPrincipal();
-        integralLogService.addIntegralLogForReduce(user.getId(),BizConstants.JF_CALL,contact.getId(),"拨号消费积分：");
+        // 扣除积分
+        integralLogService.addIntegralLogForReduce(user.getId(), BizConstants.JF_CALL, contact.getId(), "拨号消费积分：");
         return true;
     }
 

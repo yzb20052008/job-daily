@@ -4,7 +4,7 @@
 		<mescroll-uni :fixed="false" height="100%" width="100%" ref="mescrollRef" @init="mescrollInit" :up="upOption"
 			@down="downCallback" @up="upCallback" bottom="50upx">
 			<view class="item" v-for="(item,index) in list" :key="index" @click="toDetail(item)">
-				<text class="time">{{$u.timeFrom(new Date(item.createTime).getTime())}}</text>
+				<text class="time">{{$u.timeFrom(new Date((item.createTime||'').replace(/-/g,'/')).getTime())}}</text>
 				<view class="info">
 					<view class="title"><text class="info">{{item.title}}</text></view>
 					<view class="address">
@@ -28,7 +28,7 @@
 	export default {
 		mixins: [MescrollMixin], // 使用mixin
 		computed: {
-			...mapState(['userInfo'])
+			...mapState(['userInfo', 'memberRole'])
 		},
 		data() {
 			return {
@@ -49,6 +49,7 @@
 					pageSize: 10,
 					userId: null,
 					type: 1,
+					roleCode: null,
 				}
 			};
 		},
@@ -62,6 +63,7 @@
 				this.query.pageSize = pageSize;
 				if (this.userInfo.token) {
 					this.query.userId = this.userInfo.id;
+					this.query.roleCode = this.memberRole || this.userInfo.memberRole;
 				}
 				let res = await this.$apis.getNoticeList({
 					params: this.query,

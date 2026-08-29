@@ -53,6 +53,8 @@ public class AliPayController extends AbstractAliPayApiController {
 	private IJobOrderService jobOrderService;
 	@Resource
 	private IIntegralRechargeService integralRechargeService;
+	@Resource
+	private org.jeecg.modules.job.support.IdempotentHelper idempotentHelper;
 
 	private final AjaxResult result = new AjaxResult();
 	// 普通公钥模式
@@ -119,10 +121,7 @@ public class AliPayController extends AbstractAliPayApiController {
 					|| org.jeecg.common.util.oConvertUtils.isEmpty(amount)) {
 				return org.jeecg.common.api.vo.Result.error("参数错误");
 			}
-			java.math.BigDecimal money = new java.math.BigDecimal(amount).setScale(2, java.math.RoundingMode.HALF_UP);
-			if (money.compareTo(java.math.BigDecimal.ZERO) <= 0) {
-				return org.jeecg.common.api.vo.Result.error("结算金额必须大于0");
-			}
+			java.math.BigDecimal clientMoney = new java.math.BigDecimal(amount).setScale(2, java.math.RoundingMode.HALF_UP);
 			org.apache.shiro.SecurityUtils.getSubject();
 			org.jeecg.common.system.vo.LoginUser user =
 					(org.jeecg.common.system.vo.LoginUser) org.apache.shiro.SecurityUtils.getSubject().getPrincipal();
@@ -136,9 +135,8 @@ public class AliPayController extends AbstractAliPayApiController {
 			if (!user.getId().equals(order.getPostUserId())) {
 				return org.jeecg.common.api.vo.Result.error("仅老板可结算工资");
 			}
-			if (!org.jeecg.modules.job.constant.BizConstants.ORDER_STATUS_WAIT_PAY.equals(order.getOrderStatus())) {
-				return org.jeecg.common.api.vo.Result.error("订单状态不是待结算");
-			}
+			idempotentHelper.assertPaySalaryOnce(orderId);
+			java.math.BigDecimal money = jobOrderService.resolvePaySalaryAmount(orderId, clientMoney);
 			// 确保线程内支付宝配置可用
 			AliPayApiConfigKit.setThreadLocalAliPayApiConfig(getApiConfig());
 
@@ -157,6 +155,8 @@ public class AliPayController extends AbstractAliPayApiController {
 					org.jeecg.modules.job.constant.BizConstants.PAY_TYPE_ZFB);
 			log.info("支付宝工资下单成功 orderId={}, orderSn={}, amount={}", orderId, orderSn, money);
 			return org.jeecg.common.api.vo.Result.ok(orderInfo);
+		} catch (org.jeecg.modules.job.exception.BizException e) {
+			return org.jeecg.common.api.vo.Result.error(e.getErrCode(), e.getMessage());
 		} catch (Exception e) {
 			log.error("支付宝工资下单失败 orderId={}", orderId, e);
 			return org.jeecg.common.api.vo.Result.error("下单失败：" + e.getMessage());

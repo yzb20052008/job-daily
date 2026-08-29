@@ -1,37 +1,22 @@
 package org.jeecg.modules.job.ums.controller;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.jeecg.common.api.vo.Result;
-import org.jeecg.common.system.query.QueryGenerator;
 import org.jeecg.common.util.oConvertUtils;
+import org.jeecg.modules.job.constant.BizConstants;
 import org.jeecg.modules.job.ums.entity.UmsWithdraw;
 import org.jeecg.modules.job.ums.service.IUmsWithdrawService;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
 
-import org.jeecgframework.poi.excel.ExcelImportUtil;
-import org.jeecgframework.poi.excel.def.NormalExcelConstants;
-import org.jeecgframework.poi.excel.entity.ExportParams;
-import org.jeecgframework.poi.excel.entity.ImportParams;
-import org.jeecgframework.poi.excel.view.JeecgEntityExcelView;
 import org.jeecg.common.system.base.controller.JeecgController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.multipart.MultipartHttpServletRequest;
 import org.springframework.web.servlet.ModelAndView;
-import com.alibaba.fastjson.JSON;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.jeecg.common.aspect.annotation.AutoLog;
@@ -52,11 +37,6 @@ public class UmsWithdrawController extends JeecgController<UmsWithdraw, IUmsWith
 	
 	/**
 	 * 分页列表查询
-	 *
-	 * @param umsWithdraw
-	 * @param pageNo
-	 * @param pageSize
-	 * @return
 	 */
 	@ApiOperation(value="用户提现-分页列表查询", notes="用户提现-分页列表查询")
 	@GetMapping(value = "/list")
@@ -69,41 +49,28 @@ public class UmsWithdrawController extends JeecgController<UmsWithdraw, IUmsWith
 	}
 	
 	/**
-	 *   添加
-	 *
-	 * @param umsWithdraw
-	 * @return
+	 * 禁止后台直接录入提现单（须走移动端申请以冻结余额）
 	 */
-	@AutoLog(value = "用户提现-添加")
-	@ApiOperation(value="用户提现-添加", notes="用户提现-添加")
-	//@RequiresPermissions("org.jeecg.modules.job:ums_withdraw:add")
+	@AutoLog(value = "用户提现-添加(已禁用)")
+	@ApiOperation(value="用户提现-添加", notes="已禁用，请通过移动端提现申请")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody UmsWithdraw umsWithdraw) {
-		umsWithdrawService.save(umsWithdraw);
-		return Result.OK("添加成功！");
+		return Result.error("禁止直接添加提现单，请通过用户端提现申请");
 	}
 	
 	/**
-	 *  编辑
-	 *
-	 * @param umsWithdraw
-	 * @return
+	 * 禁止随意改资金字段，审核请走 updateStatus
 	 */
-	@AutoLog(value = "用户提现-编辑")
-	@ApiOperation(value="用户提现-编辑", notes="用户提现-编辑")
-	//@RequiresPermissions("org.jeecg.modules.job:ums_withdraw:edit")
+	@AutoLog(value = "用户提现-编辑(已禁用)")
+	@ApiOperation(value="用户提现-编辑", notes="已禁用，请通过审核/查单接口")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody UmsWithdraw umsWithdraw) {
-		umsWithdrawService.updateById(umsWithdraw);
-		return Result.OK("编辑成功!");
+		return Result.error("禁止直接编辑提现单，请使用审核或查单回写");
 	}
 
 
 	 /**
-	  *  更新状态
-	  *
-	  * @param umsWithdraw
-	  * @return
+	  * 审核：通过后事务外发起微信转账
 	  */
 	 @AutoLog(value = "用户提现-更新状态")
 	 @ApiOperation(value="用户提现-更新状态", notes="用户提现-更新状态")
@@ -113,12 +80,42 @@ public class UmsWithdrawController extends JeecgController<UmsWithdraw, IUmsWith
 			if (oConvertUtils.isEmpty(umsWithdraw.getId()) || oConvertUtils.isEmpty(umsWithdraw.getWithdrawStatus())){
 				return Result.error("参数错误");
 			}
-			umsWithdrawService.updateStatus(umsWithdraw.getId(),umsWithdraw.getWithdrawStatus(),umsWithdraw.getReason());
-			return Result.OK("编辑成功!");
+			int status = umsWithdraw.getWithdrawStatus();
+			umsWithdrawService.updateStatus(umsWithdraw.getId(), status, umsWithdraw.getReason());
+			// 审核与转账拆事务：审核已提交后再发起渠道转账
+			if (status == BizConstants.WITHDRAW_STATUS_SUCCESS) {
+				try {
+					umsWithdrawService.initiateTransfer(umsWithdraw.getId());
+				} catch (Exception e) {
+					log.error("审核通过后发起转账失败 id={}", umsWithdraw.getId(), e);
+					return Result.error("审核已通过，但发起转账失败，请使用「查单回写」或稍后重试：" + e.getMessage());
+				}
+			}
+			return Result.OK(status == BizConstants.WITHDRAW_STATUS_SUCCESS
+					? "审核通过，已发起转账" : "已拒绝并解冻");
 		}catch (Exception e){
 			return Result.error("操作失败:"+e.getMessage());
 		}
 	 }
+
+	/**
+	 * 审核通过后重新发起微信转账（发起失败/漏发时补救；内部先查单防重发）
+	 */
+	@AutoLog(value = "用户提现-重新发起转账")
+	@ApiOperation(value = "重新发起转账", notes = "仅审核通过且转账未终态")
+	@RequestMapping(value = "/retryTransfer", method = {RequestMethod.PUT, RequestMethod.POST})
+	public Result<String> retryTransfer(@RequestBody UmsWithdraw umsWithdraw) {
+		try {
+			if (oConvertUtils.isEmpty(umsWithdraw.getId())) {
+				return Result.error("参数错误");
+			}
+			umsWithdrawService.initiateTransfer(umsWithdraw.getId());
+			return Result.OK("已发起转账");
+		} catch (Exception e) {
+			log.error("重新发起转账失败 id={}", umsWithdraw.getId(), e);
+			return Result.error("操作失败:" + e.getMessage());
+		}
+	}
 
 	/**
 	 * 关闭异常提现（无商户单号）并解冻
@@ -139,42 +136,28 @@ public class UmsWithdrawController extends JeecgController<UmsWithdraw, IUmsWith
 	}
 	
 	/**
-	 *   通过id删除
-	 *
-	 * @param id
-	 * @return
+	 * 禁止删除提现单（资金流水不可物理删）
 	 */
-	@AutoLog(value = "用户提现-通过id删除")
-	@ApiOperation(value="用户提现-通过id删除", notes="用户提现-通过id删除")
-	//@RequiresPermissions("org.jeecg.modules.job:ums_withdraw:delete")
+	@AutoLog(value = "用户提现-通过id删除(已禁用)")
+	@ApiOperation(value="用户提现-通过id删除", notes="已禁用")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
-		umsWithdrawService.removeById(id);
-		return Result.OK("删除成功!");
+		return Result.error("禁止删除提现单");
 	}
 	
 	/**
-	 *  批量删除
-	 *
-	 * @param ids
-	 * @return
+	 * 禁止批量删除
 	 */
-	@AutoLog(value = "用户提现-批量删除")
-	@ApiOperation(value="用户提现-批量删除", notes="用户提现-批量删除")
-	//@RequiresPermissions("org.jeecg.modules.job:ums_withdraw:deleteBatch")
+	@AutoLog(value = "用户提现-批量删除(已禁用)")
+	@ApiOperation(value="用户提现-批量删除", notes="已禁用")
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<String> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
-		this.umsWithdrawService.removeByIds(Arrays.asList(ids.split(",")));
-		return Result.OK("批量删除成功!");
+		return Result.error("禁止删除提现单");
 	}
 	
 	/**
 	 * 通过id查询
-	 *
-	 * @param id
-	 * @return
 	 */
-	//@AutoLog(value = "用户提现-通过id查询")
 	@ApiOperation(value="用户提现-通过id查询", notes="用户提现-通过id查询")
 	@GetMapping(value = "/queryById")
 	public Result<UmsWithdraw> queryById(@RequestParam(name="id",required=true) String id) {
@@ -187,27 +170,18 @@ public class UmsWithdrawController extends JeecgController<UmsWithdraw, IUmsWith
 
     /**
     * 导出excel
-    *
-    * @param request
-    * @param umsWithdraw
     */
-    //@RequiresPermissions("org.jeecg.modules.job:ums_withdraw:exportXls")
     @RequestMapping(value = "/exportXls")
     public ModelAndView exportXls(HttpServletRequest request, UmsWithdraw umsWithdraw) {
         return super.exportXls(request, umsWithdraw, UmsWithdraw.class, "用户提现");
     }
 
     /**
-      * 通过excel导入数据
-    *
-    * @param request
-    * @param response
-    * @return
+      * 禁止导入（防绕过冻结语义）
     */
-    //@RequiresPermissions("ums_withdraw:importExcel")
     @RequestMapping(value = "/importExcel", method = RequestMethod.POST)
     public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
-        return super.importExcel(request, response, UmsWithdraw.class);
+        return Result.error("禁止导入提现单");
     }
 
 }

@@ -69,8 +69,8 @@ public class VipController {
             boolean result=ordersService.createVipOrder(orders);
             return Result.ok(result);
         } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error(e.getMessage());
+			log.error("操作异常", e);
+			return Result.error(e.getMessage());
         }
     }
 

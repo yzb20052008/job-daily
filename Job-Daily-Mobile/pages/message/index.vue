@@ -24,10 +24,6 @@
 	import {
 		mapState
 	} from 'vuex';
-	import {
-		requestSubscribe,
-		getSpecificTmplStatus,
-	} from '@/config/common';
 	export default {
 		computed: {
 			...mapState(['userInfo', 'memberRole'])
@@ -35,52 +31,6 @@
 		data() {
 			return {
 				notices: [{
-						icon: '/static/images/msg-sys.png',
-						title: '系统通知',
-						desc: "暂无系统通知",
-						createTime: '',
-						count: 0,
-						url: '/pages/notice/notice',
-						login: true,
-					},
-					{
-						icon: '/static/images/msg-private.png',
-						title: '平台私信',
-						desc: "暂无私信消息",
-						createTime: '',
-						count: 0,
-						url: '/pages/message/privateList?type=2&&title=平台私信',
-						login: true,
-					},
-					{
-						icon: '/static/images/msg-voilation.png',
-						title: '违规记录',
-						desc: "暂无违规记录",
-						createTime: '',
-						count: 0,
-						url: '/pages/message/privateList?type=4&&title=违规记录',
-						login: true,
-					},
-					{
-						icon: '/static/images/msg-order.png',
-						title: '订单动态',
-						desc: "暂无订单消息",
-						createTime: '',
-						count: 0,
-						url: '/pages/message/orderList',
-						login: true,
-					},
-					{
-						icon: '/static/images/msg-money.png',
-						title: '动账通知',
-						desc: "暂无私信消息",
-						createTime: '',
-						count: 0,
-						url: '/pages/message/financeList',
-						login: true,
-					},
-				],
-				notices2: [{
 						icon: '/static/images/msg-sys.png',
 						title: '系统通知',
 						desc: "暂无系统通知",
@@ -137,14 +87,6 @@
 
 		onTabItemTap(ops) {
 			console.log("onTabItemTap==", ops)
-			if (this.memberRole == 'driver') {
-				requestSubscribe(3,
-					res => {
-						console.log("订阅成功：", res)
-					}, err => {
-						console.log("订阅失败：", err)
-					});
-			}
 		},
 
 		methods: {
@@ -171,56 +113,32 @@
 			},
 
 			getNotices() {
-				if (this.memberRole == 'driver') {
-					return this.notices2;
-				} else {
-					return this.notices;
-				}
+				// 老板/工人入口一致，列表数据由 roleCode 区分
+				return this.notices;
 			},
 
 			setUnReadCount() {
 				let count = 0;
-				if (this.userInfo.memberRole == 'driver') {
-					this.notices2[0].count = this.countInfo.publicCount;
-					this.notices2[1].count = this.countInfo.privateCount;
-					this.notices2[2].count = this.countInfo.violationCount;
-					this.notices2[3].count = this.countInfo.orderCount;
-					this.notices2[4].count = this.countInfo.financeCount;
-					count = this.countInfo.privateCount + this.countInfo.violationCount + this.countInfo.publicCount + this.countInfo.orderCount + this
-						.countInfo.financeCount
+				this.notices[0].count = this.countInfo.publicCount;
+				this.notices[1].count = this.countInfo.privateCount;
+				this.notices[2].count = this.countInfo.violationCount;
+				this.notices[3].count = this.countInfo.orderCount;
+				this.notices[4].count = this.countInfo.financeCount;
+				count = (this.countInfo.privateCount || 0) + (this.countInfo.violationCount || 0)
+					+ (this.countInfo.publicCount || 0) + (this.countInfo.orderCount || 0)
+					+ (this.countInfo.financeCount || 0);
 
-					this.notices2[0].desc = this.countInfo.publicDesc;
-					this.notices2[1].desc = this.countInfo.privateDesc;
-					this.notices2[2].desc = this.countInfo.violationDesc;
-					this.notices2[3].desc = this.countInfo.orderDesc;
-					this.notices2[4].desc = this.countInfo.financeDesc;
+				this.notices[0].desc = this.countInfo.publicDesc;
+				this.notices[1].desc = this.countInfo.privateDesc;
+				this.notices[2].desc = this.countInfo.violationDesc;
+				this.notices[3].desc = this.countInfo.orderDesc;
+				this.notices[4].desc = this.countInfo.financeDesc;
 
-					this.notices2[0].createTime = this.countInfo.publicTime;
-					this.notices2[1].createTime = this.countInfo.privateTime;
-					this.notices2[2].createTime = this.countInfo.violationTime;
-					this.notices2[3].createTime = this.countInfo.orderTime;
-					this.notices2[4].createTime = this.countInfo.financeTime;
-				} else {
-					this.notices[0].count = this.countInfo.publicCount;
-					this.notices[1].count = this.countInfo.privateCount;
-					this.notices[2].count = this.countInfo.violationCount;
-					this.notices[3].count = this.countInfo.orderCount;
-					this.notices[4].count = this.countInfo.financeCount;
-					count = this.countInfo.privateCount + this.countInfo.violationCount + this.countInfo.publicCount  + this
-						.countInfo.orderCount + this.countInfo.financeCount
-
-					this.notices[0].desc = this.countInfo.publicDesc;
-					this.notices[1].desc = this.countInfo.privateDesc;
-					this.notices[2].desc = this.countInfo.violationDesc;
-					this.notices[3].desc = this.countInfo.orderDesc;
-					this.notices[4].desc = this.countInfo.financeDesc;
-
-					this.notices[0].createTime = this.countInfo.publicTime;
-					this.notices[1].createTime = this.countInfo.privateTime;
-					this.notices[2].createTime = this.countInfo.violationTime;
-					this.notices[3].createTime = this.countInfo.orderTime;
-					this.notices[4].createTime = this.countInfo.financeTime;
-				}
+				this.notices[0].createTime = this.countInfo.publicTime;
+				this.notices[1].createTime = this.countInfo.privateTime;
+				this.notices[2].createTime = this.countInfo.violationTime;
+				this.notices[3].createTime = this.countInfo.orderTime;
+				this.notices[4].createTime = this.countInfo.financeTime;
 				if (count > 0) {
 					uni.setTabBarBadge({
 						index: 1,
@@ -240,6 +158,8 @@
 				}
 				if (this.userInfo.token) {
 					params.userId = this.userInfo.id;
+					// 订单未读必须带当前身份，避免老板端计入求职端订单消息
+					params.roleCode = this.memberRole || this.userInfo.memberRole;
 				} else {
 					return;
 				}

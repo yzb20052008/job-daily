@@ -1,7 +1,4 @@
 import store from '@/store';
-import base from "@/config/baseUrl";
-import QQMapWX from '@/plugins/qqmap-wx-jssdk.js';
-import amap from '@/plugins/amap-wx.js';
 import {
 	getAppLatLon
 } from '@/plugins/utils';
@@ -200,151 +197,285 @@ function scene(e, callback, flag = false) {
 }
 
 /*
- * 获取定位信息
- * successCallback:成功回调
- * errCallback:失败回调
- * isOpenSetting:是否检验授权 默认不检验
+ * 定位 / 逆地理：客户端缓存 + 位移/TTL 节流 + 失败降级默认值
+ * purpose: city=首页城市 | address=打卡地址 | coord=只要坐标
+ */
+const GEO_CACHE_KEY = 'geoCache';
+/** 城市用途：30 分钟内、位移未超 800m 复用逆地理 */
+const GEO_CITY_TTL_MS = 30 * 60 * 1000;
+const GEO_CITY_MOVE_M = 800;
+/** 打卡地址：10 分钟内、位移未超 150m 复用 */
+const GEO_ADDR_TTL_MS = 10 * 60 * 1000;
+const GEO_ADDR_MOVE_M = 150;
+/** 逆地理失败时的默认城市（保证列表仍可浏览） */
+const DEFAULT_CITY_INFO = {
+	city: '附近',
+	area: '附近',
+	areaCode: '',
+	cityCode: '',
+};
+/** 逆地理失败时的默认地址文案（保证打卡可提交展示） */
+const DEFAULT_ADDRESS = '当前位置（地址解析暂不可用）';
+
+function readGeoCache() {
+	try {
+		const mem = store.state && store.state.locateInformation;
+		if (mem && mem.location && (mem.ad_info || mem.address) && mem._geoTs) {
+			return mem;
+		}
+		return uni.getStorageSync(GEO_CACHE_KEY) || null;
+	} catch (e) {
+		return null;
+	}
+}
+
+function writeGeoCache(data) {
+	if (!data) {
+		return;
+	}
+	const payload = Object.assign({}, data, {
+		_geoTs: data._geoTs || Date.now()
+	});
+	try {
+		uni.setStorageSync(GEO_CACHE_KEY, {
+			location: payload.location,
+			latitude: payload.latitude || (payload.location && payload.location.lat),
+			longitude: payload.longitude || (payload.location && payload.location.lng),
+			address: payload.address,
+			ad_info: payload.ad_info,
+			_geoTs: payload._geoTs,
+			_geoFallback: !!payload._geoFallback
+		});
+	} catch (e) {
+		// ignore
+	}
+	store.commit('setLocateInformation', payload);
+}
+
+function canReuseGeoCache(cache, lat, lng, maxMeters, maxAgeMs) {
+	if (!cache || !cache._geoTs || !cache.location) {
+		return false;
+	}
+	if (!cache.ad_info && !cache.address) {
+		return false;
+	}
+	if (Date.now() - Number(cache._geoTs) > maxAgeMs) {
+		return false;
+	}
+	const cLat = cache.location.lat != null ? cache.location.lat : cache.latitude;
+	const cLng = cache.location.lng != null ? cache.location.lng : cache.longitude;
+	if (cLat == null || cLng == null) {
+		return false;
+	}
+	// 简易球面距离（米），避免依赖后方 getDistance 声明顺序
+	const toRad = d => (Number(d) * Math.PI) / 180;
+	const r = 6378137;
+	const dLat = toRad(lat - cLat);
+	const dLng = toRad(lng - cLng);
+	const a =
+		Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+		Math.cos(toRad(cLat)) * Math.cos(toRad(lat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+	const dist = 2 * r * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+	return dist <= maxMeters;
+}
+
+/**
+ * 逆地理失败或无结果时的降级包：优先沿用缓存城市/地址，否则用默认值
+ */
+function buildFallbackGeo(lat, lng, cached) {
+	const last = (store.state && store.state.lastLocation) || {};
+	const ad = (cached && cached.ad_info) || {};
+	const city = ad.city || last.city || DEFAULT_CITY_INFO.city;
+	const district = ad.district || last.area || DEFAULT_CITY_INFO.area;
+	const adcode = ad.adcode || last.areaCode || '';
+	const address = (cached && cached.address) || last.address || DEFAULT_ADDRESS;
+	return {
+		location: { lat: lat, lng: lng },
+		latitude: lat,
+		longitude: lng,
+		address: address,
+		ad_info: {
+			nation: ad.nation || '中国',
+			province: ad.province || '',
+			city: city,
+			district: district,
+			adcode: adcode || '000000'
+		},
+		_geoFallback: true,
+		_geoTs: Date.now()
+	};
+}
+
+function normalizeGeoResult(raw, lat, lng) {
+	if (!raw || !raw.ad_info) {
+		return null;
+	}
+	const location = raw.location || { lat: lat, lng: lng };
+	return Object.assign({}, raw, {
+		location: location,
+		latitude: location.lat != null ? location.lat : lat,
+		longitude: location.lng != null ? location.lng : lng,
+		address: raw.address || DEFAULT_ADDRESS,
+		_geoTs: Date.now(),
+		_geoFallback: false
+	});
+}
+
+/**
+ * 获取定位信息（坐标走设备，逆地理走后台 /api/map，带缓存节流）
+ * @param successCallback
+ * @param errCallback
+ * @param isGeoCode true|false，或 options: { isGeoCode, isOpenSetting, purpose, force }
+ *        purpose: city|address|coord，默认 city（兼容旧调用）
+ * @param isOpenSetting
  */
 function loGetLocation(successCallback, errCallback, isGeoCode = true, isOpenSetting = false) {
-	var that = this
+	let purpose = 'city';
+	let force = false;
+	let needGeo = true;
+	let openSetting = isOpenSetting;
+	if (typeof isGeoCode === 'object' && isGeoCode !== null) {
+		const opt = isGeoCode;
+		needGeo = opt.isGeoCode !== false && opt.purpose !== 'coord';
+		openSetting = !!opt.isOpenSetting;
+		purpose = opt.purpose || (needGeo ? 'city' : 'coord');
+		force = !!opt.force;
+	} else {
+		needGeo = !!isGeoCode;
+		purpose = needGeo ? 'city' : 'coord';
+	}
+
 	getAppLatLon(item => {
-		if (base.mapData?.key && isGeoCode) {
-			var latitude = item.latitude; // 纬度，浮点数，范围为90 ~ -90
-			var longitude = item.longitude; // 经度，浮点数，范围为180 ~ -180
-			var qqmapsdk = new QQMapWX({
-				key: base.mapData
-					?.key, // 您的key---秘钥key值可通过https://lbs.qq.com/qqmap_wx_jssdk/index.html申请
-				// #ifdef H5
-				vm: that
-				// #endif
-			});
-			// 地址逆解析可获取省市区等信息
-			qqmapsdk.reverseGeocoder({
-				location: {
-					latitude: latitude,
-					longitude: longitude
-				},
-				sig: base.mapData?.sk,
-				success: function(res) {
-					store.commit('setLocateInformation', res.result)
-					successCallback && successCallback(res.result)
-				},
-				fail: function(err) {
-					item.location = {
-						lat: latitude,
-						lng: longitude,
-					}
-					store.commit('setLocateInformation', item)
-					successCallback && successCallback(item)
-				}
-			});
-		} else {
-			item.location = {
-				lat: item.latitude,
-				lng: item.longitude,
-			}
-			store.commit('setLocateInformation', item)
-			successCallback && successCallback(item)
+		const latitude = item.latitude;
+		const longitude = item.longitude;
+		const cached = readGeoCache();
+
+		// 只要坐标
+		if (!needGeo || purpose === 'coord') {
+			const result = {
+				location: { lat: latitude, lng: longitude },
+				latitude: latitude,
+				longitude: longitude,
+				address: (cached && cached.address) || DEFAULT_ADDRESS,
+				ad_info: (cached && cached.ad_info) || null,
+				_geoTs: (cached && cached._geoTs) || Date.now(),
+				_geoFromCache: true
+			};
+			store.commit('setLocateInformation', Object.assign({}, cached || {}, result));
+			successCallback && successCallback(result);
+			return;
 		}
+
+		const maxMeters = purpose === 'address' ? GEO_ADDR_MOVE_M : GEO_CITY_MOVE_M;
+		const maxAge = purpose === 'address' ? GEO_ADDR_TTL_MS : GEO_CITY_TTL_MS;
+		if (!force && canReuseGeoCache(cached, latitude, longitude, maxMeters, maxAge)) {
+			const reused = Object.assign({}, cached, {
+				location: { lat: latitude, lng: longitude },
+				latitude: latitude,
+				longitude: longitude,
+				_geoFromCache: true
+			});
+			// 打卡要有 address
+			if (!reused.address) {
+				reused.address = DEFAULT_ADDRESS;
+			}
+			store.commit('setLocateInformation', reused);
+			successCallback && successCallback(reused);
+			return;
+		}
+
+		uni.$u.http.get('/api/map/reverseGeocoder', {
+			params: { latitude: latitude, longitude: longitude },
+			custom: { load: false, auth: false }
+		}).then(res => {
+			const normalized = normalizeGeoResult(res, latitude, longitude);
+			if (!normalized) {
+				const fallback = buildFallbackGeo(latitude, longitude, cached);
+				writeGeoCache(fallback);
+				successCallback && successCallback(fallback);
+				return;
+			}
+			writeGeoCache(normalized);
+			successCallback && successCallback(normalized);
+		}).catch(err => {
+			console.warn('逆地理编码失败，使用降级默认值', err);
+			const fallback = buildFallbackGeo(latitude, longitude, cached);
+			writeGeoCache(fallback);
+			successCallback && successCallback(fallback);
+		});
 	}, err => {
-		store.commit('setLocateInformation', {})
-		errCallback && errCallback(err)
-	}, isOpenSetting)
-}
-
-
-/*
- * 逆地理编码
- * successCallback:成功回调
- * errCallback:失败回调
- * isOpenSetting:是否检验授权 默认不检验
- */
-function getRegeo(latitude,longitude,successCallback, errCallback) {
-	var that = this
-	var qqmapsdk = new QQMapWX({
-		key: base.mapData
-			?.key, // 您的key---秘钥key值可通过https://lbs.qq.com/qqmap_wx_jssdk/index.html申请
-		// #ifdef H5
-		vm: that
-		// #endif
-	});
-	// 地址逆解析可获取省市区等信息
-	qqmapsdk.reverseGeocoder({
-		location: {
-			latitude: latitude,
-			longitude: longitude
-		},
-		sig: base.mapData?.sk,
-		success: function(res) {
-			successCallback && successCallback(res.result)
-		},
-		fail: function(err) {
-			item.location = {
-				lat: latitude,
-				lng: longitude,
-			}
-			successCallback && successCallback(item)
+		// 定位权限失败：尽量用缓存保证可浏览
+		const cached = readGeoCache();
+		const last = (store.state && store.state.lastLocation) || {};
+		if (cached && cached.location) {
+			const soft = buildFallbackGeo(cached.location.lat, cached.location.lng, cached);
+			store.commit('setLocateInformation', soft);
+			successCallback && successCallback(soft);
+			return;
 		}
-	});
+		if (last.latitude != null && last.longitude != null) {
+			const soft = buildFallbackGeo(last.latitude, last.longitude, null);
+			soft.ad_info.city = last.city || soft.ad_info.city;
+			soft.ad_info.district = last.area || soft.ad_info.district;
+			soft.ad_info.adcode = last.areaCode || soft.ad_info.adcode;
+			store.commit('setLocateInformation', soft);
+			successCallback && successCallback(soft);
+			return;
+		}
+		store.commit('setLocateInformation', {});
+		errCallback && errCallback(err);
+	}, openSetting);
 }
 
 /*
- * 获取定位信息
- * successCallback:成功回调
- * errCallback:失败回调
- * isOpenSetting:是否检验授权 默认不检验
+ * 逆地理编码（后台代理腾讯地图），失败返回带默认值的结果
  */
+function getRegeo(latitude, longitude, successCallback, errCallback) {
+	uni.$u.http.get('/api/map/reverseGeocoder', {
+		params: { latitude: latitude, longitude: longitude },
+		custom: { load: false, auth: false }
+	}).then(res => {
+		const normalized = normalizeGeoResult(res, latitude, longitude);
+		if (!normalized) {
+			const fallback = buildFallbackGeo(latitude, longitude, readGeoCache());
+			successCallback && successCallback(fallback);
+			return;
+		}
+		writeGeoCache(normalized);
+		successCallback && successCallback(normalized);
+	}).catch(err => {
+		console.warn('逆地理编码失败', err);
+		const fallback = buildFallbackGeo(latitude, longitude, readGeoCache());
+		successCallback && successCallback(fallback);
+		errCallback && errCallback(err);
+	});
+}
+
+function geocodeAddress(address, successCallback, errCallback) {
+	if (!address) { errCallback && errCallback('地址为空'); return; }
+	uni.$u.http.get('/api/map/geocoder', {
+		params: { address: address },
+		custom: { load: false, auth: false }
+	}).then(res => { successCallback && successCallback(res) }).catch(err => { errCallback && errCallback(err) });
+}
+
+function searchNearbyPois(latitude, longitude, successCallback, errCallback) {
+	uni.$u.http.get('/api/map/nearby', {
+		params: { latitude: latitude, longitude: longitude, pageSize: 20 },
+		custom: { load: false, auth: true }
+	}).then(res => { successCallback && successCallback(res || []) }).catch(err => { errCallback && errCallback(err) });
+}
+
+function searchPlaceSuggestion(keyword, latitude, longitude, successCallback, errCallback) {
+	uni.$u.http.get('/api/map/suggestion', {
+		params: { keyword: keyword, latitude: latitude, longitude: longitude, pageSize: 20 },
+		custom: { load: false, auth: false }
+	}).then(res => { successCallback && successCallback(res || []) }).catch(err => { errCallback && errCallback(err) });
+}
+
+/** 兼容旧调用：转发到后台逆地理 */
 function loGetGaodeLocation(successCallback, errCallback, isOpenSetting = false) {
-	var that = this
-	getAppLatLon(item => {
-		if (base.mapData?.key) {
-			var latitude = item.latitude; // 纬度，浮点数，范围为90 ~ -90
-			var longitude = item.longitude; // 经度，浮点数，范围为180 ~ -180
-			//高德地图插件
-			var gdmapsdk = new amap.AMapWX({
-				key: base.mapData?.key
-			})
-			// 地址逆解析可获取省市区等信息
-			gdmapsdk.getRegeo({
-				success: function(data) {
-					//成功回调
-					console.log('定位信息：', data);
-					let mlocation = {
-						latitude: data[0].latitude,
-						longitude: data[0].longitude,
-						pcity: data[0].regeocodeData.addressComponent.city,
-						city: data[0].regeocodeData.addressComponent.district,
-						citycode: data[0].regeocodeData.addressComponent.adcode + '000000',
-						pcitycode: data[0].regeocodeData.addressComponent.adcode.substr(0, 4) +
-							'00000000'
-					};
-					store.commit('setLocateInformation', mlocation)
-					successCallback && successCallback(mlocation)
-				},
-				fail: function(info) {
-					//失败回调
-					console.log("==fail==",info);
-					item.location = {
-						lat: latitude,
-						lng: longitude,
-					}
-					store.commit('setLocateInformation', item)
-					successCallback && successCallback(item)
-				}
-			});
-		} else {
-			item.location = {
-				lat: item.latitude,
-				lng: item.longitude,
-			}
-			store.commit('setLocateInformation', item)
-			successCallback && successCallback(item)
-		}
-	}, err => {
-		store.commit('setLocateInformation', {})
-		errCallback && errCallback(err)
-
-	}, isOpenSetting)
+	loGetLocation(successCallback, errCallback, true, isOpenSetting)
 }
 
 
@@ -566,7 +697,7 @@ export {
 	clearCache, //App清理缓存
 	scene, //扫码信息
 	loGetLocation, //获取定位信息
-	loGetGaodeLocation, //获取高德定位信息
+	loGetGaodeLocation, //兼容旧调用
 	choiseRegion, //选择地址
 	phoneHiden, //隐藏手机号中间四位
 	requestSubscribe, //小程序消息订阅
@@ -574,6 +705,9 @@ export {
 	getRad,
 	calCurrentYear,
 	getRegeo,
+	geocodeAddress,
+	searchNearbyPois,
+	searchPlaceSuggestion,
 	saveReferrer,
 	getQueryString
 }

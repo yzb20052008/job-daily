@@ -10,7 +10,7 @@
 				</view>
 				<view class="item-li">
 					<text class="yzb yzb-shijian"></text>
-					<text class="time">{{$u.timeFormat(new Date(item.createTime).getTime(),'yyyy年mm月dd日 hh:MM')}}</text>
+					<text class="time">{{$u.timeFormat(item.createTime,'yyyy年mm月dd日 hh:MM')}}</text>
 				</view>
 			</view>
 		</mescroll-uni>

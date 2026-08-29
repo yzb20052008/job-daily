@@ -31,7 +31,7 @@ public final class OrderStatusMachine {
         // 待结算 → 待评价（支付回调）
         allow(BizConstants.ORDER_STATUS_WAIT_PAY,
                 BizConstants.ORDER_STATUS_WAIT_COMMENT);
-        // 待评价 → 已完成
+        // 待评价 → 已完成（仅评价双方完成后由评价服务迁移，禁止通用改态）
         allow(BizConstants.ORDER_STATUS_WAIT_COMMENT,
                 BizConstants.ORDER_STATUS_FINISH);
     }

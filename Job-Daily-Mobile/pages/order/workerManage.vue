@@ -12,7 +12,7 @@
 				<view class="order-time">
 					<text class="time-title">工作时间：</text>
 					<text class="time-info">
-						{{$u.timeFormat (new Date(post.startTime).getTime(),'mm-dd hh:MM')}} 至 {{$u.timeFormat (new Date(post.endTime).getTime(),'mm-dd hh:MM')}}
+						{{$u.timeFormat(post.startTime,'mm-dd hh:MM')}} 至 {{$u.timeFormat(post.endTime,'mm-dd hh:MM')}}
 					</text>
 				</view>
 				<view class="order-price">
@@ -66,8 +66,9 @@
 							style="color: red;font-weight: bold;">{{djsTime(currentItem.startTime,currentItem.endTime)}}</text>
 					</u-form-item>
 					<u-form-item label="结算工资" labelPosition="top" prop="amount">
-						<u-input placeholder="请输入应付工资金额" type="digit" v-model="form.amount" prefixIcon="rmb"
-							prefixIconStyle="font-size: 22px;color: #909399" />
+						<u-input placeholder="有单价时须等于单价×工时" type="digit" v-model="form.amount" prefixIcon="rmb"
+							prefixIconStyle="font-size: 22px;color: #909399"
+							:disabled="!!(currentItem.unitPrice && currentItem.duration)"></u-input>
 					</u-form-item>
 				</u-form>
 				<text class="tips">付工资前请确保金额已经与工人达成一致</text>
@@ -116,6 +117,7 @@
 				id: '',
 				post: {},
 				list: [],
+				actionSubmitting: false,
 				//订单状态：0-待确认，1-待开工，2-工作中，3-待结算，4-待评价，5-已完成，6-已取消
 				tabs: [{
 					name: '全部'
@@ -274,6 +276,16 @@
 			toPay(item, index) {
 				this.currentItem = item;
 				this.currentItem.index = index;
+				// 有单价×工时时预填系统核算金额，避免与后端校验不一致
+				let suggest = '';
+				const price = Number(item.unitPrice || item.unit_price || 0);
+				const duration = Number(item.duration || 0);
+				if (price > 0 && duration > 0) {
+					suggest = (price * duration).toFixed(2);
+				} else if (item.payableAmount) {
+					suggest = String(item.payableAmount);
+				}
+				this.form.amount = suggest;
 				this.show = true;
 			},
 
@@ -291,6 +303,9 @@
 			},
 			
 			pay(){
+				if (this.actionSubmitting) {
+					return;
+				}
 				console.log("money==",this.money)
 				this.show = false;
 				if (!this.selectedPay) {
@@ -306,9 +321,14 @@
 			},
 			
 			async minipay() {
+				if (this.actionSubmitting) {
+					return;
+				}
 				let that = this;
+				this.actionSubmitting = true;
 				this.form.orderId=this.currentItem.id;
 				console.log('-------params-------', this.form);
+				try {
 				let res = await this.$apis.miniPaySalary({
 					params: this.form
 				});
@@ -337,21 +357,31 @@
 								that.mescroll.resetUpScroll();
 							}, 10);
 						},
-						fail: function(fail) {
-							console.log('--------fail-------');
-							console.log(fail);
-							uni.showToast({
-								icon: 'none',
-								title: '结算失败，请重试'
-							});
+						fail: function(err) {
+							console.log('-------err-------', err);
+							uni.$u.toast('支付取消或失败');
+						},
+						complete: function() {
+							that.actionSubmitting = false;
 						}
 					});
+				} else {
+					this.actionSubmitting = false;
+				}
+				} catch (e) {
+					this.actionSubmitting = false;
+					throw e;
 				}
 			},
 
 			async alipay() {
+				if (this.actionSubmitting) {
+					return;
+				}
 				let that = this;
+				this.actionSubmitting = true;
 				this.form.orderId = this.currentItem.id;
+				try {
 				let res = await this.$apis.appPaySalary({
 					params: this.form
 				});
@@ -375,8 +405,17 @@
 								icon: 'none',
 								title: '结算失败，请重试'
 							});
+						},
+						complete: function() {
+							that.actionSubmitting = false;
 						}
 					});
+				} else {
+					this.actionSubmitting = false;
+				}
+				} catch (e) {
+					this.actionSubmitting = false;
+					throw e;
 				}
 			},
 			
@@ -396,23 +435,31 @@
 			},
 
 			async updateOrderStatus(id, index, status) {
-				let params = {
-					id: id,
+				if (this.actionSubmitting) {
+					return;
 				}
-				// 优先走动作接口，由服务端校验状态机与权限
-				let res;
-				if (status == 1) {
-					res = await this.$apis.confirmOrder(params);
-				} else if (status == 6) {
-					res = await this.$apis.cancelOrder(params);
-				} else {
-					params.orderStatus = status;
-					res = await this.$apis.updateOrderStatus(params);
-				}
-				console.log("updateOrderStatus", res);
-				if (res) {
-					uni.$u.toast('操作成功');
-					this.mescroll.resetUpScroll();
+				this.actionSubmitting = true;
+				try {
+					let params = {
+						id: id,
+					}
+					// 优先走动作接口，由服务端校验状态机与权限
+					let res;
+					if (status == 1) {
+						res = await this.$apis.confirmOrder(params);
+					} else if (status == 6) {
+						res = await this.$apis.cancelOrder(params);
+					} else {
+						params.orderStatus = status;
+						res = await this.$apis.updateOrderStatus(params);
+					}
+					console.log("updateOrderStatus", res);
+					if (res) {
+						uni.$u.toast('操作成功');
+						this.mescroll.resetUpScroll();
+					}
+				} finally {
+					this.actionSubmitting = false;
 				}
 			},
 

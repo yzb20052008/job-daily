@@ -17,22 +17,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 @Service
 public class UmsParamLimitServiceImpl extends ServiceImpl<UmsParamLimitMapper, UmsParamLimit> implements IUmsParamLimitService {
 
-
-    @Override
-    public boolean addAi(String userId, int num) {
-        UmsParamLimit limit=this.getParamLimit(userId);
-        limit.setAiNum(limit.getAiNum() + num);
-        return this.updateById(limit);
-    }
-
     @Override
     public UmsParamLimit getParamLimit(String userId) {
-        UmsParamLimit limit=this.getOne(new QueryWrapper<>(new UmsParamLimit().setUserId(userId)));
-        if (limit==null){
-            limit=new UmsParamLimit();
+        UmsParamLimit limit = this.getOne(new QueryWrapper<>(new UmsParamLimit().setUserId(userId)));
+        if (limit == null) {
+            limit = new UmsParamLimit();
             limit.setUserId(userId);
-            limit.setAiNum(3);//默认3个
-            limit.setApplyNum(100);//默认100次
+            limit.setApplyNum(100); // 默认投递额度
             this.save(limit);
         }
         return limit;

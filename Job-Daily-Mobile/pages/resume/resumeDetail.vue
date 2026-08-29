@@ -520,7 +520,8 @@
 	.page {
 		background-image: linear-gradient(#007aff, #DEEFFA 40%, #f5f5f5);
 		padding-top: 180upx;
-		padding-bottom: 150upx;
+		padding-bottom: calc(150upx + constant(safe-area-inset-bottom));
+		padding-bottom: calc(150upx + env(safe-area-inset-bottom));
 	}
 
 	.none {
@@ -853,8 +854,12 @@
 	.bottom {
 		position: fixed;
 		bottom: 0;
+
 		width: 100%;
 		padding: 10upx 0;
+		/* 全面屏底部安全区 */
+		padding-bottom: calc(10upx + constant(safe-area-inset-bottom));
+		padding-bottom: calc(10upx + env(safe-area-inset-bottom));
 		background-color: #fff;
 		border-top: 1upx solid #eee;
 	}
@@ -916,8 +921,13 @@
 			position: relative;
 			position: fixed;
 			bottom: 0;
+			/* 全面屏底部安全区 */
+			padding-bottom: constant(safe-area-inset-bottom);
+			padding-bottom: env(safe-area-inset-bottom);
+
 			width: 750rpx;
-			height: 310rpx;
+			min-height: 310rpx;
+			height: auto;
 			overflow: hidden;
 			background-color: #fff;
 			border-radius: 24rpx 24rpx 0 0;

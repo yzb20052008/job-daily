@@ -30,7 +30,7 @@
 					<text class="location-name">{{item.pCity}}-{{item.city}}</text>
 					<text class="load-distance">{{item.distance | formatDistance}}</text>
 				</view>
-				<text class="time">{{$u.timeFormat (new Date(item.createTime).getTime(),'mm月dd日 hh:MM')}}</text>
+				<text class="time">{{$u.timeFormat(item.createTime,'mm月dd日 hh:MM')}}</text>
 			</view>
 		</view>
 	</view>

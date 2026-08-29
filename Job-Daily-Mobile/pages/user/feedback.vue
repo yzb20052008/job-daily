@@ -243,6 +243,10 @@ export default {
 .bottom {
 	position: fixed;
 	bottom: 0upx;
+	/* 全面屏底部安全区 */
+	padding-bottom: constant(safe-area-inset-bottom);
+	padding-bottom: env(safe-area-inset-bottom);
+
 	width: 100%;
 	background: #f5f6fa;
 	z-index: 99;

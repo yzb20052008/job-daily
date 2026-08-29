@@ -12,17 +12,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface IUmsParamLimitService extends IService<UmsParamLimit> {
 
     /**
-     * 添加AI次数
-     * @param userId
-     * @param num
-     * @return
-     */
-    boolean addAi(String userId,int num);
-
-    /**
      * 查询用户额度
-     * @param userId
-     * @return
+     * @param userId 用户ID
+     * @return 额度信息
      */
     UmsParamLimit getParamLimit(String userId);
 

@@ -266,9 +266,8 @@ public class FileController {
             }
             response.flushBuffer();
         } catch (IOException e) {
-            log.error("预览文件失败" + e.getMessage());
+            log.error("预览文件失败" + e.getMessage(), e);
             response.setStatus(404);
-            e.printStackTrace();
         } finally {
             if (inputStream != null) {
                 try {

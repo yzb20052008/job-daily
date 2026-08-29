@@ -27,6 +27,7 @@ import com.ijpay.wxpay.model.v3.*;
 import org.bouncycastle.crypto.engines.SM2Engine;
 import org.bouncycastle.crypto.signers.PlainDSAEncoding;
 import org.jeecg.modules.job.pay.entity.WxPayV3Bean;
+import org.jeecg.modules.job.ums.service.IUmsWithdrawService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
@@ -67,6 +68,8 @@ public class WxPayV3Controller {
 
 	@Resource
 	WxPayV3Bean wxPayV3Bean;
+	@Resource
+	private IUmsWithdrawService withdrawService;
 
 	String serialNo;
 	String platSerialNo;
@@ -941,13 +944,14 @@ public class WxPayV3Controller {
 			String result = HttpKit.readData(request);
 			log.info("支付通知密文 {}", result);
 
-			// 需要通过证书序列号查找对应的证书，verifyNotify 中有验证证书的序列号
 			String plainText = WxPayKit.verifyNotify(serialNo, result, signature, nonce, timestamp,
 				wxPayV3Bean.getApiKey3(), wxPayV3Bean.getPlatformCertPath());
 
 			log.info("支付通知明文 {}", plainText);
 
 			if (StrUtil.isNotEmpty(plainText)) {
+				// 若误打到支付回调的转账通知，尽量回写提现态
+				tryHandleTransferNotify(plainText);
 				response.setStatus(200);
 				map.put("code", "SUCCESS");
 				map.put("message", "SUCCESS");
@@ -961,6 +965,92 @@ public class WxPayV3Controller {
 			response.flushBuffer();
 		} catch (Exception e) {
 			log.error("系统异常", e);
+		}
+	}
+
+	/**
+	 * 商家转账到零钱异步通知（专用入口）
+	 */
+	@RequestMapping(value = "/transferNotify", method = {org.springframework.web.bind.annotation.RequestMethod.POST, org.springframework.web.bind.annotation.RequestMethod.GET})
+	@ResponseBody
+	public void transferNotify(HttpServletRequest request, HttpServletResponse response) {
+		Map<String, String> map = new HashMap<>(12);
+		try {
+			String timestamp = request.getHeader("Wechatpay-Timestamp");
+			String nonce = request.getHeader("Wechatpay-Nonce");
+			String serialNo = request.getHeader("Wechatpay-Serial");
+			String signature = request.getHeader("Wechatpay-Signature");
+			String body = HttpKit.readData(request);
+			log.info("转账通知密文 {}", body);
+			String plainText = WxPayKit.verifyNotify(serialNo, body, signature, nonce, timestamp,
+					wxPayV3Bean.getApiKey3(), wxPayV3Bean.getPlatformCertPath());
+			log.info("转账通知明文 {}", plainText);
+			if (StrUtil.isNotEmpty(plainText)) {
+				boolean ok = tryHandleTransferNotify(plainText);
+				if (!ok) {
+					// 业务失败勿回 SUCCESS，否则微信不再重试，资金态可能永久不一致
+					log.error("转账通知业务处理失败 plainText={}", plainText);
+					response.setStatus(500);
+					map.put("code", "ERROR");
+					map.put("message", "业务处理失败");
+				} else {
+					response.setStatus(200);
+					map.put("code", "SUCCESS");
+					map.put("message", "SUCCESS");
+				}
+			} else {
+				response.setStatus(500);
+				map.put("code", "ERROR");
+				map.put("message", "签名错误");
+			}
+			response.setHeader("Content-type", ContentType.JSON.toString());
+			response.getOutputStream().write(JSONUtil.toJsonStr(map).getBytes(StandardCharsets.UTF_8));
+			response.flushBuffer();
+		} catch (Exception e) {
+			log.error("转账通知异常", e);
+			try {
+				response.setStatus(500);
+				map.put("code", "ERROR");
+				map.put("message", "处理失败");
+				response.setHeader("Content-type", ContentType.JSON.toString());
+				response.getOutputStream().write(JSONUtil.toJsonStr(map).getBytes(StandardCharsets.UTF_8));
+				response.flushBuffer();
+			} catch (Exception ignored) {
+				// ignore
+			}
+		}
+	}
+
+	/**
+	 * 解析转账通知并回写提现单（幂等）
+	 */
+	private boolean tryHandleTransferNotify(String plainText) {
+		if (StrUtil.isEmpty(plainText)) {
+			return false;
+		}
+		try {
+			JSONObject json = JSONUtil.parseObj(plainText);
+			String outBillNo = json.getStr("out_bill_no");
+			String state = json.getStr("state");
+			if (StrUtil.isEmpty(outBillNo) && json.containsKey("resource")) {
+				// 部分通知结构为外层事件 + 已解密明文直接含字段
+				outBillNo = json.getStr("out_bill_no");
+			}
+			if (StrUtil.isEmpty(outBillNo) || StrUtil.isEmpty(state)) {
+				// 非转账通知，忽略
+				return true;
+			}
+			String packageInfo = json.getStr("package_info");
+			String failReason = json.getStr("fail_reason");
+			log.info("回写转账状态 outBillNo={}, state={}, failReason={}", outBillNo, state, failReason);
+			boolean ok = withdrawService.updateTransferStatus(outBillNo, state, packageInfo, failReason);
+			if (!ok) {
+				log.error("转账回写失败 outBillNo={}, state={}", outBillNo, state);
+			}
+			return ok;
+		} catch (Exception e) {
+			log.error("解析或处理转账通知失败: {}", e.getMessage(), e);
+			return false;
 		}
 	}
 }

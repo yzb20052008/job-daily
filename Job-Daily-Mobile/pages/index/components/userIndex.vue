@@ -209,12 +209,13 @@
 
 			initData() {
 				console.log("this.lastLocation==", this.lastLocation);
-				if (this.lastLocation.area) {
-					this.cityInfo = this.lastLocation;
+				if (this.lastLocation && this.lastLocation.area) {
+					this.cityInfo = Object.assign({}, this.lastLocation);
+					this.lastCity = this.cityInfo.area;
+					// 有缓存城市时先出列表，再静默刷新定位（内部有逆地理缓存）
+					this.getPostList(1, 10);
 				}
-				if (!this.locateInformation.location) {
-					this.getLocation();
-				}
+				this.getLocation();
 				this.topTabs = [];
 				this.topTabs.push(this.defaultTab);
 				// this.getConfig();
@@ -228,8 +229,8 @@
 
 			initShowData(options) {
 				console.log("options===", options)
-				if(options.cityInfo.areaCode){
-					this.cityInfo=options.cityInfo;
+				if (options && options.cityInfo && options.cityInfo.areaCode) {
+					this.cityInfo = options.cityInfo;
 				}
 				this.types = options.types;
 				if (this.ifToTypes) {
@@ -389,28 +390,51 @@
 
 			getLocation() {
 				console.log('============getLocation==============');
-				//获取定位信息
 				loGetLocation(
 					res => {
 						console.log(res, 'loGetLocation');
-						console.log('locateInformation', this.locateInformation);
-						this.cityInfo.city = this.locateInformation.ad_info.city;
-						this.cityInfo.area = this.locateInformation.ad_info.district;
-						this.cityInfo.areaCode = this.locateInformation.ad_info.adcode;
-						// this.cityInfo.cityCode = this.locateInformation.ad_info.city_code;
-						this.cityInfo.cityCode = this.cityInfo.areaCode.substr(0, 4);
+						const adInfo = res && res.ad_info;
+						const location = (res && res.location) || {};
+						const lat = location.lat != null ? location.lat : res.latitude;
+						const lng = location.lng != null ? location.lng : res.longitude;
+						// 有 adcode 用新城市；否则用缓存/默认「附近」，保证列表可体验
+						if (adInfo && adInfo.adcode && adInfo.adcode !== '000000') {
+							this.cityInfo.city = adInfo.city || '';
+							this.cityInfo.area = adInfo.district || adInfo.city || '附近';
+							this.cityInfo.areaCode = adInfo.adcode;
+							this.cityInfo.cityCode = String(adInfo.adcode).substr(0, 4);
+						} else if (this.lastLocation && this.lastLocation.areaCode) {
+							this.cityInfo = Object.assign({}, this.lastLocation);
+						} else {
+							this.cityInfo.city = (adInfo && adInfo.city) || '附近';
+							this.cityInfo.area = (adInfo && adInfo.district) || '附近';
+							this.cityInfo.areaCode = '';
+							this.cityInfo.cityCode = '';
+						}
+						this.cityInfo.latitude = lat;
+						this.cityInfo.longitude = lng;
+						this.cityInfo.address = (res && res.address) || this.cityInfo.address || '';
 						this.lastCity = this.cityInfo.area;
-						this.locateInformation.cityInfo = this.cityInfo;
-						this.setLocateInformation(this.locateInformation);
+						const locate = Object.assign({}, res || {}, {
+							location: { lat: lat, lng: lng },
+							cityInfo: this.cityInfo
+						});
+						this.setLocateInformation(locate);
 						this.setLastLocation(this.cityInfo);
 						this.getPostList(1, 10);
 						this.updateLocation();
 					},
 					err => {
 						console.log('err==', err);
+						if (this.lastLocation && this.lastLocation.area) {
+							this.cityInfo = Object.assign({}, this.lastLocation);
+						} else {
+							this.cityInfo = { city: '附近', area: '附近', areaCode: '', cityCode: '' };
+						}
+						this.lastCity = this.cityInfo.area;
+						this.getPostList(1, 10);
 					},
-					true,
-					true
+					{ purpose: 'city', isOpenSetting: true }
 				);
 			},
 
@@ -420,15 +444,20 @@
 					console.log("未登录  无需更新位置")
 					return;
 				}
-				console.log('===updateUserLocation===', this.locateInformation);
+				const locate = this.locateInformation || {};
+				if (!locate.location || !locate.cityInfo || !locate.cityInfo.areaCode) {
+					console.log("定位城市信息不完整，跳过同步");
+					return;
+				}
+				console.log('===updateUserLocation===', locate);
 				let param = {
-					latitude: this.locateInformation.location.lat,
-					longitude: this.locateInformation.location.lng,
-					city: this.locateInformation.cityInfo.area,
-					cityCode: this.locateInformation.cityInfo.areaCode,
-					pcity: this.locateInformation.cityInfo.city,
-					pcityCode: this.locateInformation.cityInfo.cityCode,
-					address: this.locateInformation.address,
+					latitude: locate.location.lat,
+					longitude: locate.location.lng,
+					city: locate.cityInfo.area,
+					cityCode: locate.cityInfo.areaCode,
+					pcity: locate.cityInfo.city,
+					pcityCode: locate.cityInfo.cityCode,
+					address: locate.address,
 				};
 				this.$apis
 					.updateUserLocation(param)

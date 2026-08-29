@@ -31,7 +31,7 @@ SELECT
   '0 0/5 * * * ?',
   NULL,
   '待确认订单超时自动取消',
-  -1
+  0
 FROM DUAL
 WHERE NOT EXISTS (
   SELECT 1 FROM `sys_quartz_job`

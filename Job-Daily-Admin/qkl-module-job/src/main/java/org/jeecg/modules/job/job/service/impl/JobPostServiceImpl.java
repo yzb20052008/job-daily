@@ -2,8 +2,10 @@ package org.jeecg.modules.job.job.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import org.jeecg.common.exception.JeecgBootException;
 import org.jeecg.common.system.api.ISysBaseAPI;
 import org.jeecg.common.system.vo.LoginUser;
 import org.jeecg.common.util.DateUtils;
@@ -15,6 +17,7 @@ import org.jeecg.modules.job.job.mapper.JobOrderMapper;
 import org.jeecg.modules.job.job.mapper.JobPostMapper;
 import org.jeecg.modules.job.job.service.*;
 import org.jeecg.modules.job.job.vo.JobPostVo;
+import org.jeecg.modules.job.rule.service.IVipPrivilegeService;
 import org.jeecg.modules.job.ums.entity.UmsRealnameAuth;
 import org.jeecg.modules.job.ums.service.IUmsRealnameAuthService;
 import org.jeecg.modules.job.utils.JsonUtils;
@@ -59,9 +62,13 @@ public class JobPostServiceImpl extends ServiceImpl<JobPostMapper, JobPost> impl
     private WechatApiService wechatApiService;
     @Resource
     private IJobEvaluateLogService evaluateLogService;
+    @Resource
+    private IVipPrivilegeService vipPrivilegeService;
 
     @Override
     public boolean addPostInfo(JobPost post) {
+        // VIP 发岗规则（vip_post_require=1 时强制）
+        vipPrivilegeService.assertCanPublishPost(post.getUserId());
         //敏感字校验
         boolean result = wechatApiService.checkText(JsonUtils.objectToJson(post));
         if (result==false){
@@ -81,14 +88,35 @@ public class JobPostServiceImpl extends ServiceImpl<JobPostMapper, JobPost> impl
         return this.updateById(post);
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public boolean deletePostInfo(String postId) {
-        //删除相关记录 1、收藏记录，2、浏览记录，3、订单记录、4、评价记录、5、联系记录
+        JobPost post = this.getById(postId);
+        if (post == null) {
+            throw new JeecgBootException("岗位不存在");
+        }
+        // 已结算订单禁止删除岗位，避免资金审计断链
+        long paidCount = orderMapper.selectCount(new QueryWrapper<JobOrder>()
+                .eq("post_id", postId)
+                .eq("pay_status", "1"));
+        if (paidCount > 0) {
+            throw new JeecgBootException("该岗位存在已结算订单，禁止删除，请改为停招");
+        }
+        // 进行中/已完成订单禁止物理删除，改为停招
+        long activeCount = orderMapper.selectCount(new QueryWrapper<JobOrder>()
+                .eq("post_id", postId)
+                .ne("order_status", BizConstants.ORDER_STATUS_CANCEL));
+        if (activeCount > 0) {
+            post.setPostStatus(BizConstants.POST_STATUS_STOP);
+            this.updateById(post);
+            return true;
+        }
+        // 无有效订单：允许删除岗位及浏览/收藏/联系；仅清理已取消订单
         this.removeById(postId);
         jobBrowseService.remove(new QueryWrapper<>(new JobBrowse().setDataId(postId)));
         collectService.remove(new QueryWrapper<>(new JobCollect().setDataId(postId)));
-        orderMapper.delete(new QueryWrapper<>(new JobOrder().setPostId(postId)));
+        orderMapper.delete(new QueryWrapper<>(new JobOrder().setPostId(postId)
+                .setOrderStatus(BizConstants.ORDER_STATUS_CANCEL)));
         contactService.remove(new QueryWrapper<>(new JobPostContact().setPostId(postId)));
         evaluateLogService.remove(new QueryWrapper<>(new JobEvaluateLog().setPostId(postId)));
         return true;
@@ -179,16 +207,18 @@ public class JobPostServiceImpl extends ServiceImpl<JobPostMapper, JobPost> impl
             if (order!=null){
                 postVo.setIfApply(true);
             }
-            //添加浏览记录
-            jobBrowseService.addBrowse(userId,id,"member");
+            // 浏览记录仅记一次（去重）
+            if (!jobBrowseService.ifBrowsed(userId, id, "member")) {
+                jobBrowseService.addBrowse(userId, id, "member");
+            }
         }
 
-        //添加浏览记录
-        if(oConvertUtils.isNotEmpty(userId)){
-            jobBrowseService.addBrowse(userId,id,"member");
-        }
-        post.setBrowseNumber(post.getBrowseNumber()+1);
-        this.updateById(post);
+        // 浏览次数原子自增（每次打开详情计一次 PV）
+        this.update(new UpdateWrapper<JobPost>()
+                .eq("id", id)
+                .setSql("browse_number = IFNULL(browse_number, 0) + 1"));
+        Integer browseNumber = post.getBrowseNumber() == null ? 1 : post.getBrowseNumber() + 1;
+        postVo.setBrowseNumber(browseNumber);
         return postVo;
     }
 

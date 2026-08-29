@@ -68,7 +68,7 @@ public class PayService implements IPayService {
                     .setOpenid(openId)
                     .setTransfer_amount(transferAmountFen)
                     .setTransfer_remark(remark)
-                    .setNotify_url(wxPayV3Bean.getDomain()+"/wxPay/payNotify")
+                    .setNotify_url(wxPayV3Bean.getDomain()+"/v3/transferNotify")
                     .setTransfer_scene_report_infos(transferSceneReportInfos);
             log.info("发起商家转账 outBillNo={}, amountFen={}, openId={}", outBillNo, transferAmountFen, openId);
             IJPayHttpResponse response = WxPayApi.v3(

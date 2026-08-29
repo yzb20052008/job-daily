@@ -1,10 +1,8 @@
 package org.jeecg.modules.job.pay.utils;
 
-import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.util.CharsetUtil;
-import cn.hutool.json.JSONArray;
-import cn.hutool.json.JSONObject;
-import cn.hutool.json.JSONUtil;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -201,20 +199,20 @@ public class WxPayPlatformCertUtil {
      * 解析响应并解密平台证书
      */
     private String parseAndDecryptCert(String responseBody) throws Exception {
-        JSONObject jsonObject = JSONUtil.parseObj(responseBody);
+        JSONObject jsonObject = JSON.parseObject(responseBody);
         JSONArray dataArray = jsonObject.getJSONArray("data");
-        if (dataArray.isEmpty()) {
+        if (dataArray == null || dataArray.isEmpty()) {
             throw new RuntimeException("未获取到平台证书数据");
         }
 
         // 取第一个证书（可扩展：按expire_time筛选未过期证书）
         JSONObject certObj = dataArray.getJSONObject(0);
-        String certSerialNo = certObj.getStr("serial_no");
+        String certSerialNo = certObj.getString("serial_no");
         JSONObject encryptCertObj = certObj.getJSONObject("encrypt_certificate");
 
-        String associatedData = encryptCertObj.getStr("associated_data");
-        String nonce = encryptCertObj.getStr("nonce");
-        String cipherText = encryptCertObj.getStr("ciphertext");
+        String associatedData = encryptCertObj.getString("associated_data");
+        String nonce = encryptCertObj.getString("nonce");
+        String cipherText = encryptCertObj.getString("ciphertext");
 
         // 解密证书
         String platformCertPem = decryptAesGcm(associatedData, nonce, cipherText, apiV3Key);
@@ -364,7 +362,7 @@ public class WxPayPlatformCertUtil {
      * 校验文件是否存在
      */
     private void checkFileExists(String filePath, String errorMsg) {
-        if (!FileUtil.exist(filePath)) {
+        if (!new File(filePath).exists()) {
             throw new IllegalArgumentException(errorMsg + "，路径：" + filePath);
         }
     }
@@ -373,7 +371,7 @@ public class WxPayPlatformCertUtil {
      * 读取本地平台证书
      */
     public X509Certificate getLocalPlatformCert() throws Exception {
-        if (!FileUtil.exist(platformCertSavePath)) {
+        if (!new File(platformCertSavePath).exists()) {
             throw new RuntimeException("本地平台证书不存在，请先调用fetchAndSavePlatformCert()");
         }
         return loadX509Certificate(platformCertSavePath);

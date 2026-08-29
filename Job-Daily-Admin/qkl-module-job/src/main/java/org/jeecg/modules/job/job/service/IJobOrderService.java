@@ -46,6 +46,11 @@ public interface IJobOrderService extends IService<JobOrder> {
 
 
     /**
+     * 解析并校验结算金额（单价×工时优先，否则协商金额）
+     */
+    java.math.BigDecimal resolvePaySalaryAmount(String orderId, java.math.BigDecimal clientAmount);
+
+    /**
      * 更新支付工资
      * @param money
      */

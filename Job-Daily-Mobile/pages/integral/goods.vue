@@ -227,14 +227,9 @@
 					goodsId: item.id,
 				}
 				if (item.code == "ai") {
-					uni.showModal({
-						title: "温馨提示",
-						content: "确定购买AI卡？",
-						success(res) {
-							if (res.confirm) {
-								that.createJfOrder(params);
-							}
-						}
+					uni.showToast({
+						icon: 'none',
+						title: "该道具已下线"
 					})
 				} else if (item.code == "topping" || item.code == "eye") { //置顶卡、醒目卡
 					this.selectItem = item;
@@ -287,7 +282,8 @@
 						this.list = [];
 					}
 					if (res) {
-						let data = res.records;
+						// 过滤已下线的 AI 卡
+						let data = (res.records || []).filter(item => item.code !== 'ai');
 						this.list = this.list.concat(data);
 						this.mescroll.endSuccess(res.records.length);
 					}

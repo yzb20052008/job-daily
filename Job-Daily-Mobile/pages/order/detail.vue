@@ -34,8 +34,8 @@
 				</view>
 			</view>
 			<view class="y-time">
-				工作时间：{{$u.timeFormat (new Date(order.post.startTime).getTime(),'mm-dd hh:MM')}} 至
-				{{$u.timeFormat (new Date(order.post.endTime).getTime(),'mm-dd hh:MM')}}
+				工作时间：{{$u.timeFormat(order.post.startTime,'mm-dd hh:MM')}} 至
+				{{$u.timeFormat(order.post.endTime,'mm-dd hh:MM')}}
 			</view>
 			<view class="y-status">
 				<view class="tags-item" v-if="order.post.postStatus==2">

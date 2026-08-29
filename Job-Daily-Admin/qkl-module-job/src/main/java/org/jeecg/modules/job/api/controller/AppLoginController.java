@@ -38,7 +38,6 @@ import org.jeecg.modules.job.job.entity.JobCompany;
 import org.jeecg.modules.job.job.service.IJobCompanyService;
 import org.jeecg.modules.job.job.service.IJobResumeService;
 import org.jeecg.modules.job.ums.entity.UmsRealnameAuth;
-import org.jeecg.modules.job.ums.service.IUmsParamLimitService;
 import org.jeecg.modules.job.ums.service.IUmsRealnameAuthService;
 import org.jeecg.modules.job.ums.service.IUmsReferrerLogService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,8 +67,6 @@ public class AppLoginController {
     private IUmsReferrerLogService referrerLogService;
     @Resource
     private IIntegralLogService integralLogService;
-    @Resource
-    private IUmsParamLimitService paramLimitService;
     @Resource
     private IUmsRealnameAuthService realnameAuthService;
     @Resource
@@ -184,8 +181,8 @@ public class AppLoginController {
             result.setSuccess(true);
             result.setCode(CommonConstant.SC_OK_200);
         } catch (ClientException e) {
-            e.printStackTrace();
-            result.error500(" 短信接口未配置，请联系管理员！");
+			log.error("操作异常", e);
+			result.error500(" 短信接口未配置，请联系管理员！");
             return result;
         }
         return result;
@@ -275,8 +272,8 @@ public class AppLoginController {
             result.setSuccess(true);
             result.setCode(CommonConstant.SC_OK_200);
         } catch (Exception e) {
-            e.printStackTrace();
-            result.error500("发送失败"+e.getMessage());
+			log.error("操作异常", e);
+			result.error500("发送失败"+e.getMessage());
             return result;
         }
         return result;
@@ -613,8 +610,8 @@ public class AppLoginController {
             result.setMessage("登录成功");
             baseCommonService.addLog("用户名: " + sysUser.getNickname() + ",登录成功[移动端]！", CommonConstant.LOG_TYPE_1, null);
         } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println(e.getMessage());
+			log.error("操作异常", e);
+			System.err.println(e.getMessage());
         }
         return result;
     }
@@ -753,8 +750,8 @@ public class AppLoginController {
             result.setMessage("登录成功");
             baseCommonService.addLog("用户名: " + sysUser.getNickname() + ",登录成功[移动端]！", CommonConstant.LOG_TYPE_1, null);
         } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println(e.getMessage());
+			log.error("操作异常", e);
+			System.err.println(e.getMessage());
         }
         return result;
     }
@@ -864,8 +861,8 @@ public class AppLoginController {
             Gson gson = new Gson();
             wxPhoneInfo = gson.fromJson(result, WxPhoneInfo.class);
         } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error("绑定手机号异常");
+			log.error("操作异常", e);
+			return Result.error("绑定手机号异常");
         }
         if (wxPhoneInfo == null) {
             return Result.error("绑定手机号异常");
@@ -1060,8 +1057,8 @@ public class AppLoginController {
             String result = AES.wxDecrypt(encDataStr, session_key, ivStr);
             wxPhoneInfo = gson.fromJson(result, WxPhoneInfo.class);
         } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error("登录异常");
+			log.error("操作异常", e);
+			return Result.error("登录异常");
         }
         if (wxPhoneInfo == null) {
             return Result.error("登录异常");
@@ -1200,8 +1197,8 @@ public class AppLoginController {
                 String phoneRes = AES.wxDecrypt(encDataStr, session_key, ivStr);
                 wxPhoneInfo = gson.fromJson(phoneRes, WxPhoneInfo.class);
             } catch (Exception e) {
-                e.printStackTrace();
-                return Result.error("登录异常");
+			log.error("操作异常", e);
+			return Result.error("登录异常");
             }
             if (wxPhoneInfo == null) {
                 return Result.error("登录异常");
@@ -1321,8 +1318,8 @@ public class AppLoginController {
             result.setMessage("登录成功");
             baseCommonService.addLog("用户名: " + sysUser.getNickname() + ",登录成功[移动端]！", CommonConstant.LOG_TYPE_1, null);
         } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println(e.getMessage());
+			log.error("操作异常", e);
+			System.err.println(e.getMessage());
         }
         return result;
     }
@@ -1405,8 +1402,8 @@ public class AppLoginController {
             result.setMessage("登录成功");
             baseCommonService.addLog("用户名: " + sysUser.getNickname() + ",登录成功[移动端]！", CommonConstant.LOG_TYPE_1, null);
         } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println(e.getMessage());
+			log.error("操作异常", e);
+			System.err.println(e.getMessage());
         }
         return result;
     }

@@ -127,6 +127,10 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/api/ws/**", "anon");//websocket聊天
 
         filterChainDefinitionMap.put("/api/base/**", "anon"); //基础信息管理模块接口排除
+        filterChainDefinitionMap.put("/api/map/geocoder", "anon"); //地理编码
+        filterChainDefinitionMap.put("/api/map/reverseGeocoder", "anon"); //逆地理编码
+        filterChainDefinitionMap.put("/api/map/ipLocation", "anon"); //IP定位
+        filterChainDefinitionMap.put("/api/map/suggestion", "anon"); //地点搜索
         filterChainDefinitionMap.put("/api/post/getPostList", "anon"); //职位列表
         filterChainDefinitionMap.put("/api/post/getPostDetail", "anon"); //职位详情
         filterChainDefinitionMap.put("/api/types/getTypes", "anon"); //工种信息

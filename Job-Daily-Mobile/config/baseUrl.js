@@ -43,8 +43,9 @@ const courtConfig = {
 	shareUrl: shareUrl,
 	systemInfo: systemInfo, //系统信息
 	mapData: {
-		key: 'BVSBZ-6FCCU-ZTIV2-4SQZB-OWWJS-KEBMM', //腾讯地图key:BVSBZ-6FCCU-ZTIV2-4SQZB-OWWJS-KEBMM
-		sk: 'fXlEQP42ywsPd7rQ6J4ph86vRKdAPcy5',
+		// 仅作兜底；正式 key 由 splash 拉取 base_config.map_key，逆地理/搜索走后台 /api/map/*
+		key: '',
+		sk: '',
 	},
 	share: {
 		title: '小蓝零工', //分享标题

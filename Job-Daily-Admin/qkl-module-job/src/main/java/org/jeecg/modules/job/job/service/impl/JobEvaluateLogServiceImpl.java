@@ -3,8 +3,12 @@ package org.jeecg.modules.job.job.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import org.apache.shiro.SecurityUtils;
+import org.jeecg.common.system.vo.LoginUser;
 import org.jeecg.modules.job.cms.service.ICmsNoticeService;
 import org.jeecg.modules.job.constant.BizConstants;
+import org.jeecg.modules.job.constant.BizErrorCodes;
+import org.jeecg.modules.job.exception.BizException;
 import org.jeecg.modules.job.home.service.WechatApiService;
 import org.jeecg.modules.job.job.entity.JobEvaluateLog;
 import org.jeecg.modules.job.job.entity.JobOrder;
@@ -13,7 +17,7 @@ import org.jeecg.modules.job.job.mapper.JobOrderMapper;
 import org.jeecg.modules.job.job.service.IJobEvaluateLogService;
 import org.jeecg.modules.job.job.service.IJobEvaluateService;
 import org.jeecg.modules.job.job.service.IJobOrderLogService;
-import org.jeecg.modules.job.job.service.IJobOrderService;
+import org.jeecg.modules.job.job.support.OrderStatusMachine;
 import org.jeecg.modules.job.utils.JsonUtils;
 import org.springframework.stereotype.Service;
 
@@ -43,58 +47,71 @@ public class JobEvaluateLogServiceImpl extends ServiceImpl<JobEvaluateLogMapper,
     @Resource
     private ICmsNoticeService noticeService;
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void addEvaluateLog(JobEvaluateLog log) {
-        //判断是否已评价
-        JobEvaluateLog evaluateLog;
-        if (log.getRoleCode().equals(BizConstants.ROLE_CODE_MEMBER)){
-            evaluateLog=this.getOne(new QueryWrapper<>(new JobEvaluateLog().setUserId(log.getUserId()).setOrderId(log.getOrderId()).setRoleCode(log.getRoleCode())));
-        }else{
-            evaluateLog=this.getOne(new QueryWrapper<>(new JobEvaluateLog().setPostId(log.getPostUserId()).setOrderId(log.getOrderId()).setRoleCode(log.getRoleCode())));
+        LoginUser loginUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+        if (loginUser == null) {
+            throw BizException.of(BizErrorCodes.NOT_LOGIN);
         }
-        if (evaluateLog!=null){
-            throw new RuntimeException("已评价过，请勿重复！");
+        JobOrder order = orderMapper.selectById(log.getOrderId());
+        if (order == null) {
+            throw BizException.of(BizErrorCodes.ORDER_NOT_FOUND);
         }
-        JobOrder order=orderMapper.selectById(log.getOrderId());
-        if (!order.getOrderStatus().equals(BizConstants.ORDER_STATUS_WAIT_COMMENT)){
-            throw new RuntimeException("订单状态不匹配");
+        if (!BizConstants.ORDER_STATUS_WAIT_COMMENT.equals(order.getOrderStatus())) {
+            throw BizException.of(BizErrorCodes.ORDER_STATUS_INVALID, "订单状态不匹配");
         }
-        //敏感字校验
+        // 当事人校验
+        if (BizConstants.ROLE_CODE_MEMBER.equals(log.getRoleCode())) {
+            if (!loginUser.getId().equals(order.getUserId())) {
+                throw BizException.of(BizErrorCodes.ORDER_PERMISSION);
+            }
+            log.setUserId(order.getUserId());
+        } else if (BizConstants.ROLE_CODE_COMPANY.equals(log.getRoleCode())) {
+            if (!loginUser.getId().equals(order.getPostUserId())) {
+                throw BizException.of(BizErrorCodes.ORDER_PERMISSION);
+            }
+            log.setPostUserId(order.getPostUserId());
+        } else {
+            throw BizException.of(BizErrorCodes.PARAM_INVALID, "评价角色无效");
+        }
+        // 防重：同一订单同一角色仅一次
+        JobEvaluateLog evaluateLog = this.getOne(new QueryWrapper<>(new JobEvaluateLog()
+                .setOrderId(log.getOrderId())
+                .setRoleCode(log.getRoleCode())));
+        if (evaluateLog != null) {
+            throw BizException.of(BizErrorCodes.PARAM_INVALID, "已评价过，请勿重复");
+        }
         boolean result = wechatApiService.checkText(JsonUtils.objectToJson(log));
-        if (result==false){
+        if (!result) {
             throw new RuntimeException("内容存在违规信息");
         }
         log.setPostId(order.getPostId());
-        //更新订单状态
-        if (log.getRoleCode().equals(BizConstants.ROLE_CODE_MEMBER)){
+        if (BizConstants.ROLE_CODE_MEMBER.equals(log.getRoleCode())) {
             log.setPostUserId(order.getPostUserId());
-            if (order.getCompanyEvaluate()==1){
-                //老板已评价
+            if (order.getCompanyEvaluate() != null && order.getCompanyEvaluate() == 1) {
+                OrderStatusMachine.assertTransition(order.getOrderStatus(), BizConstants.ORDER_STATUS_FINISH);
                 order.setOrderStatus(BizConstants.ORDER_STATUS_FINISH);
             }
             order.setUserEvaluate(1);
-            //工人通知
-            noticeService.addOrderNotice(BizConstants.ROLE_CODE_MEMBER,order.getUserId(),"评价成功","已完成对老板的评价",null,order.getId(),order.getPostId());
-        }else{
+            noticeService.addOrderNotice(BizConstants.ROLE_CODE_MEMBER, order.getUserId(), "评价成功", "已完成对老板的评价", null, order.getId(), order.getPostId());
+        } else {
             log.setUserId(order.getUserId());
-            if (order.getUserEvaluate()==1){
-                //工人已评价
+            if (order.getUserEvaluate() != null && order.getUserEvaluate() == 1) {
+                OrderStatusMachine.assertTransition(order.getOrderStatus(), BizConstants.ORDER_STATUS_FINISH);
                 order.setOrderStatus(BizConstants.ORDER_STATUS_FINISH);
             }
             order.setCompanyEvaluate(1);
-            //老板通知
-            noticeService.addOrderNotice(BizConstants.ROLE_CODE_COMPANY,order.getPostUserId(),"评价成功","已完成对工人的评价",null,order.getId(),order.getPostId());
+            noticeService.addOrderNotice(BizConstants.ROLE_CODE_COMPANY, order.getPostUserId(), "评价成功", "已完成对工人的评价", null, order.getId(), order.getPostId());
         }
         this.save(log);
         orderMapper.updateById(order);
-        //更新用户评分
-        if (log.getRoleCode().equals(BizConstants.ROLE_CODE_MEMBER)){//工人评价老板
-            evaluateService.updateUserEvaluate(log.getPostUserId(),BizConstants.ROLE_CODE_COMPANY,log.getScore().intValue());
-            orderLogService.addOrderLog(order.getOrderStatus(),order.getId(),"工人已完成评价",null);
-        }else{ //老板评价工人
-            evaluateService.updateUserEvaluate(log.getUserId(),BizConstants.ROLE_CODE_MEMBER,log.getScore().intValue());
-            orderLogService.addOrderLog(order.getOrderStatus(),order.getId(),"老板已完成评价",null);
+        if (BizConstants.ROLE_CODE_MEMBER.equals(log.getRoleCode())) {
+            evaluateService.updateUserEvaluate(log.getPostUserId(), BizConstants.ROLE_CODE_COMPANY, log.getScore().intValue());
+            orderLogService.addOrderLog(order.getOrderStatus(), order.getId(), "工人已完成评价", null);
+        } else {
+            evaluateService.updateUserEvaluate(log.getUserId(), BizConstants.ROLE_CODE_MEMBER, log.getScore().intValue());
+            orderLogService.addOrderLog(order.getOrderStatus(), order.getId(), "老板已完成评价", null);
         }
     }
 

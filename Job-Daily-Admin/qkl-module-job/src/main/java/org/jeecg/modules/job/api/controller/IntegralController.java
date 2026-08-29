@@ -139,7 +139,7 @@ public class IntegralController {
 			boolean result=jfOrderService.createJfOrder(user.getId(),"1",goodsId,amount,dataId);
 			return Result.ok(result);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("创建积分订单失败", e);
 			return Result.error(e.getMessage());
 		}
 	}
@@ -162,7 +162,7 @@ public class IntegralController {
 			boolean result=rechargeService.yePayIntegral(user.getId(),new BigDecimal(money));
 			return Result.ok(result);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("余额充值积分失败", e);
 			return Result.error(e.getMessage());
 		}
 	}

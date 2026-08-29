@@ -46,6 +46,13 @@ button{
     white-space: nowrap;
 }
 
+/* 底部固定操作栏安全区（页面 .bottom 已内联补全；此类供复用） */
+.safe-bottom-bar {
+	box-sizing: border-box;
+	padding-bottom: constant(safe-area-inset-bottom);
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
 // 定义flex等分
 @for $i from 0 through 12 {
 	.u-flex-#{$i} {

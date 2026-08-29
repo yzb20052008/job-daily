@@ -1,6 +1,7 @@
 package org.jeecg.modules.job.job.controller;
 
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,6 +28,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
 
 import org.jeecg.modules.job.job.service.IJobTypesService;
+import org.jeecg.modules.job.map.support.TencentMapApiSupport;
 import org.jeecgframework.poi.excel.ExcelImportUtil;
 import org.jeecgframework.poi.excel.def.NormalExcelConstants;
 import org.jeecgframework.poi.excel.entity.ExportParams;
@@ -59,6 +61,8 @@ public class JobPostController extends JeecgController<JobPost, IJobPostService>
 	private IJobPostService jobPostService;
 	@Resource
 	private IJobTypesService typesService;
+	@Resource
+	private TencentMapApiSupport tencentMapApiSupport;
 
 	/**
 	 * 分页列表查询
@@ -194,5 +198,33 @@ public class JobPostController extends JeecgController<JobPost, IJobPostService>
     public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
         return super.importExcel(request, response, JobPost.class);
     }
+
+	@ApiOperation(value = "地图Key", notes = "后台地图选点组件使用，不下发 map_sk")
+	@GetMapping(value = "/mapConfig")
+	public Result<Map<String, String>> mapConfig() {
+		Map<String, String> data = new LinkedHashMap<>();
+		try {
+			data.put("mapKey", tencentMapApiSupport.getMapKey());
+		} catch (IllegalStateException e) {
+			data.put("mapKey", "");
+		}
+		return Result.OK(data);
+	}
+
+	@ApiOperation(value = "地点搜索", notes = "关键词 POI 搜索")
+	@GetMapping(value = "/map/suggestion")
+	public Result<Object> mapSuggestion(@RequestParam(name = "keyword") String keyword,
+			@RequestParam(name = "latitude", required = false) String latitude,
+			@RequestParam(name = "longitude", required = false) String longitude,
+			@RequestParam(name = "pageSize", defaultValue = "20") Integer pageSize) {
+		return tencentMapApiSupport.suggestion(keyword, latitude, longitude, pageSize);
+	}
+
+	@ApiOperation(value = "逆地理编码", notes = "经纬度转地址")
+	@GetMapping(value = "/map/reverseGeocoder")
+	public Result<Object> mapReverseGeocoder(@RequestParam(name = "latitude") String latitude,
+			@RequestParam(name = "longitude") String longitude) {
+		return tencentMapApiSupport.reverseGeocoder(latitude, longitude);
+	}
 
 }

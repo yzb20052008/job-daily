@@ -8,15 +8,15 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.SecurityUtils;
-import org.jeecg.boot.starter.lock.annotation.JRepeat;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.common.system.vo.LoginUser;
 import org.jeecg.common.util.DateUtils;
 import org.jeecg.modules.job.constant.BizConstants;
+import org.jeecg.modules.job.exception.BizException;
 import org.jeecg.modules.job.pay.entity.TransferToUserResponse;
 import org.jeecg.modules.job.pay.entity.WxPayV3Bean;
 import org.jeecg.modules.job.pay.service.IPayService;
-import org.jeecg.modules.job.pay.service.PayService;
+import org.jeecg.modules.job.support.IdempotentHelper;
 import org.jeecg.modules.job.ums.entity.UmsAccount;
 import org.jeecg.modules.job.ums.entity.UmsAccountRecords;
 import org.jeecg.modules.job.ums.entity.UmsWithdraw;
@@ -49,6 +49,8 @@ public class FinanceController {
     private IUmsWithdrawAccountService withdrawAccountService;
     @Autowired
     private IPayService payService;
+    @Resource
+    private IdempotentHelper idempotentHelper;
 
 
     /**
@@ -111,7 +113,7 @@ public class FinanceController {
             }
             return Result.OK(result);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("查询账户余额失败", e);
             return Result.error(e.getMessage());
         }
     }
@@ -119,20 +121,30 @@ public class FinanceController {
     /**
      * 提现申请
      */
-    @JRepeat(lockKey = "withdrawApply", lockTime = 5)
     @ResponseBody
     @RequestMapping(value = "/withdrawApply", method = RequestMethod.POST)
     @ApiOperation(value = "提现申请", notes = "提现申请")
     public Result<Object> withdrawApply(@RequestBody UmsWithdraw param) {
         try {
             LoginUser user = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+            if (user == null) {
+                return Result.error("请先登录");
+            }
+            // 按用户短时幂等（替代全局 lockKey=withdrawApply）
+            idempotentHelper.assertWithdrawOnce(user.getId());
             param.setUserId(user.getId());
-            if (param.getAccountType().equals(BizConstants.ACCOUNT_TYPE_WX)){
+            if (param.getAccountType() == null) {
+                return Result.error("请选择提现方式");
+            }
+            if (BizConstants.ACCOUNT_TYPE_WX.equals(param.getAccountType())) {
                 param.setWithdrawAccount(user.getThirdId());
             }
             withdrawService.add(param);
             return Result.ok(true);
+        } catch (BizException e) {
+            return Result.error(e.getErrCode(), e.getMessage());
         } catch (Exception e) {
+            log.error("提现申请失败", e);
             return Result.error(e.getMessage());
         }
     }
@@ -150,8 +162,8 @@ public class FinanceController {
             UmsWithdrawAccount result = withdrawAccountService.getWithdrawAccount(user.getId(),accountType);
             return Result.OK(result);
         } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error(e.getMessage());
+			log.error("操作异常", e);
+			return Result.error(e.getMessage());
         }
     }
 
@@ -182,8 +194,17 @@ public class FinanceController {
     @RequestMapping(value = "/getTransferByOutBillNo", method = RequestMethod.GET)
     @ApiOperation(value = "查询待确认提现收款信息", notes = "查询待确认提现收款信息")
     public Result<Object> getTransferByOutBillNo(@RequestParam(name="outBillNo") String outBillNo) {
-        TransferToUserResponse response=withdrawService.getTransferByOutBillNo(outBillNo);
-        return Result.OK(response);
+        try {
+            LoginUser user = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+            if (user == null) {
+                return Result.error("请先登录");
+            }
+            TransferToUserResponse response = withdrawService.getTransferByOutBillNo(outBillNo, user.getId());
+            return Result.OK(response);
+        } catch (Exception e) {
+            log.error("查单失败 outBillNo={}", outBillNo, e);
+            return Result.error(e.getMessage());
+        }
     }
 }
 

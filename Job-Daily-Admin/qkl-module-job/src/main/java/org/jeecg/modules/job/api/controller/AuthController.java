@@ -71,7 +71,7 @@ public class AuthController {
 			UmsRealnameAuth auth=realnameAuthService.getRealNameAuth(user.getId());
 			return Result.ok(auth);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}
@@ -113,7 +113,7 @@ public class AuthController {
 			JobCompany auth=companyService.getCompanyAuth(user.getId());
 			return Result.ok(auth);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("操作异常", e);
 			return Result.error(e.getMessage());
 		}
 	}

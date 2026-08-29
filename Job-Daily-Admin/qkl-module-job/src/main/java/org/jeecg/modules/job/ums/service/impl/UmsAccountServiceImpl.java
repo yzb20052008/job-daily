@@ -1,6 +1,7 @@
 package org.jeecg.modules.job.ums.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import org.jeecg.common.exception.JeecgBootException;
 import org.jeecg.modules.job.constant.BizConstants;
 import org.jeecg.modules.job.ums.entity.UmsAccount;
 import org.jeecg.modules.job.ums.mapper.UmsAccountMapper;
@@ -27,51 +28,52 @@ public class UmsAccountServiceImpl extends ServiceImpl<UmsAccountMapper, UmsAcco
     @Resource
     private IUmsAccountRecordsService accountRecordsService;
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void addMemberBalance(BigDecimal money,String tradeType, String userId,String note) {
-        UmsAccount account=this.findByMemberId(userId);
-        account.setBalance(account.getBalance().add(money));
-        account.setBalanceWithdraw(account.getBalanceWithdraw().add(money));//进入可提余额
+        UmsAccount account = this.lockByUserId(userId);
+        account.setBalance(nvl(account.getBalance()).add(money));
+        account.setBalanceWithdraw(nvl(account.getBalanceWithdraw()).add(money));
+        if (BizConstants.TRADE_TYPE_RECHARGE_BALANCE.equals(tradeType)) {
+            account.setTotalRecharge(nvl(account.getTotalRecharge()).add(money));
+        }
         this.updateById(account);
-        //添加余额操作记录
         accountRecordsService.addAccountRecords(userId,money,tradeType,"+",note);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void balanceWithdrawResult(String userId, BigDecimal balance, int withdrawStatus) {
-        UmsAccount account=this.findByMemberId(userId);
+        UmsAccount account = this.lockByUserId(userId);
         if (withdrawStatus== BizConstants.WITHDRAW_STATUS_SUCCESS){
-            //扣除冻结余额
-            if (account.getBalanceFrozen().compareTo(balance)<0){
-                throw new RuntimeException("账户余额异常");
+            if (nvl(account.getBalanceFrozen()).compareTo(balance)<0){
+                throw new JeecgBootException("账户冻结余额异常");
             }
-            account.setBalanceFrozen(account.getBalanceFrozen().subtract(balance));//冻结扣除
-            account.setBalance(account.getBalance().subtract(balance));//金额扣除
-            account.setTotalWithdraw(account.getTotalWithdraw().add(balance));
+            account.setBalanceFrozen(account.getBalanceFrozen().subtract(balance));
+            account.setBalance(nvl(account.getBalance()).subtract(balance));
+            account.setTotalWithdraw(nvl(account.getTotalWithdraw()).add(balance));
             this.updateById(account);
-            //添加余额操作记录
-            accountRecordsService.addAccountRecords(userId,balance,BizConstants.TRADE_TYPE_WITHDRAW,"-","提现审核通过");
+            accountRecordsService.addAccountRecords(userId,balance,BizConstants.TRADE_TYPE_WITHDRAW,"-","提现审核通过到账");
         }else if(withdrawStatus== BizConstants.WITHDRAW_STATUS_FAILURE){
-            account.setBalanceFrozen(account.getBalanceFrozen().subtract(balance));//冻结扣除
-            account.setBalanceWithdraw(account.getBalanceWithdraw().add(balance));//可提退回
+            if (nvl(account.getBalanceFrozen()).compareTo(balance)<0){
+                throw new JeecgBootException("账户冻结余额异常");
+            }
+            account.setBalanceFrozen(account.getBalanceFrozen().subtract(balance));
+            account.setBalanceWithdraw(nvl(account.getBalanceWithdraw()).add(balance));
             this.updateById(account);
-            //添加余额操作记录
-            accountRecordsService.addAccountRecords(userId,balance,BizConstants.TRADE_TYPE_WITHDRAW,"","提现审核不通过，解冻提现金额");
+            accountRecordsService.addAccountRecords(userId,balance,BizConstants.TRADE_TYPE_WITHDRAW,"","提现失败，解冻提现金额");
         }
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void subMemberBalance(BigDecimal money,String tradeType, String userId, String note) {
-        UmsAccount account=this.findByMemberId(userId);
-        //判断余额是否足够
-        if (account.getBalance().compareTo(money)<0){
-            throw new RuntimeException("余额不足");
+        UmsAccount account = this.lockByUserId(userId);
+        if (nvl(account.getBalance()).compareTo(money)<0){
+            throw new JeecgBootException("余额不足");
         }
         account.setBalance(account.getBalance().subtract(money));
         this.updateById(account);
-        //添加余额操作记录
         accountRecordsService.addAccountRecords(userId,money,tradeType,"-",note);
     }
 
@@ -84,9 +86,28 @@ public class UmsAccountServiceImpl extends ServiceImpl<UmsAccountMapper, UmsAcco
             account.setBalance(BigDecimal.ZERO);
             account.setBalanceFrozen(BigDecimal.ZERO);
             account.setBalanceWithdraw(BigDecimal.ZERO);
-            account.setTotalMoney(BigDecimal.ZERO);
+            account.setTotalRecharge(BigDecimal.ZERO);
+            account.setTotalWithdraw(BigDecimal.ZERO);
+            account.setTotalConsume(BigDecimal.ZERO);
             this.save(account);
         }
         return account;
+    }
+
+    @Override
+    public UmsAccount lockByUserId(String userId) {
+        // 确保账户存在后再行锁
+        this.findByMemberId(userId);
+        UmsAccount account = baseMapper.selectOne(new QueryWrapper<UmsAccount>()
+                .eq("user_id", userId)
+                .last("FOR UPDATE"));
+        if (account == null) {
+            throw new JeecgBootException("账户不存在");
+        }
+        return account;
+    }
+
+    private BigDecimal nvl(BigDecimal val) {
+        return val == null ? BigDecimal.ZERO : val;
     }
 }

@@ -23,12 +23,14 @@ import org.jeecg.common.system.vo.LoginUser;
 import org.jeecg.common.util.DateUtils;
 import org.jeecg.common.util.oConvertUtils;
 import org.jeecg.modules.job.constant.BizConstants;
+import org.jeecg.modules.job.exception.BizException;
 import org.jeecg.modules.job.integral.service.IIntegralRechargeService;
 import org.jeecg.modules.job.job.entity.JobOrder;
 import org.jeecg.modules.job.job.service.IJobOrderService;
 import org.jeecg.modules.job.pay.entity.H5SceneInfo;
 import org.jeecg.modules.job.pay.entity.WxPayBean;
 import org.jeecg.modules.job.pay.vo.AjaxResult;
+import org.jeecg.modules.job.support.IdempotentHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,6 +70,10 @@ public class WxPayController extends AbstractWxPayApiController {
 	private IIntegralRechargeService integralRechargeService;
 	@Resource
 	private IJobOrderService jobOrderService;
+	@Resource
+	private org.jeecg.modules.job.ums.service.IUmsBalanceRechargeService balanceRechargeService;
+	@Resource
+	private IdempotentHelper idempotentHelper;
 
 	private String notifyUrl;
 	private String refundNotifyUrl;
@@ -168,14 +174,28 @@ public class WxPayController extends AbstractWxPayApiController {
 	@RequestMapping(value = "/miniPayBalance", method = {RequestMethod.GET})
 	@ResponseBody
 	public Result<?> miniPayBalance(String money, HttpServletRequest request) {
+		if (oConvertUtils.isEmpty(money)) {
+			return Result.error("参数错误");
+		}
+		BigDecimal amount;
+		try {
+			amount = new BigDecimal(money).setScale(2, java.math.RoundingMode.HALF_UP);
+		} catch (Exception e) {
+			return Result.error("金额格式错误");
+		}
+		if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+			return Result.error("充值金额必须大于0");
+		}
 		LoginUser user = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+		if (user == null) {
+			return Result.error("请先登录");
+		}
 		String ip = IpKit.getRealIp(request);
 		if (StrKit.isBlank(ip)) {
 			ip = "127.0.0.1";
 		}
 		WxPayApiConfigKit.putApiConfig(this.getApiConfig());
 		WxPayApiConfig wxPayApiConfig = WxPayApiConfigKit.getWxPayApiConfig();
-//		String orderSn= StringUtils.getOutTradeNo();
 		String orderSn= DateUtils.formatDate(new Date(),"yyyyMMddHHmmss")+ RandomUtil.randomNumbers(5);
 		Map<String, String> params = UnifiedOrderModel
 				.builder()
@@ -185,7 +205,7 @@ public class WxPayController extends AbstractWxPayApiController {
 				.body("余额充值")
 				.attach(ATTACH_BALANCE)
 				.out_trade_no(orderSn)
-				.total_fee(new BigDecimal(money).multiply(new BigDecimal(100)).intValue() + "")
+				.total_fee(amount.multiply(new BigDecimal(100)).intValue() + "")
 				.spbill_create_ip(ip)
 				.notify_url(notifyUrl)
 				.trade_type(TradeType.JSAPI.getTradeType())
@@ -194,7 +214,6 @@ public class WxPayController extends AbstractWxPayApiController {
 				.createSign(wxPayApiConfig.getPartnerKey(), SignType.HMACSHA256);
 
 		String xmlResult = WxPayApi.pushOrder(false, params);
-		System.err.println(notifyUrl);
 		log.info(xmlResult);
 		Map<String, String> result = WxPayKit.xmlToMap(xmlResult);
 
@@ -207,14 +226,13 @@ public class WxPayController extends AbstractWxPayApiController {
 		if (!WxPayKit.codeIsOk(resultCode)) {
 			return Result.error(returnMsg);
 		}
-		// 以下字段在 return_code 和 result_code 都为 SUCCESS 的时候有返回
 		String prepayId = result.get("prepay_id");
 		Map<String, String> packageParams = WxPayKit.miniAppPrepayIdCreateSign(wxPayApiConfig.getAppId(), prepayId,
 				wxPayApiConfig.getPartnerKey(), SignType.HMACSHA256);
 		String jsonStr = JSON.toJSONString(packageParams);
 		log.info("小程序支付的参数:" + jsonStr);
-		//添加订单记录
-		integralRechargeService.createRechargeOrder(orderSn,user.getId(),money, BizConstants.PAY_TYPE_WX);
+		// 落余额充值单（禁止误写积分充值表）
+		balanceRechargeService.createRechargeOrder(orderSn, user.getId(), amount, BizConstants.PAY_TYPE_WX);
 		return Result.ok(jsonStr);
 	}
 
@@ -225,17 +243,15 @@ public class WxPayController extends AbstractWxPayApiController {
 	@RequestMapping(value = "/miniPaySalary", method = {RequestMethod.GET})
 	@ResponseBody
 	public Result<?> miniPaySalary(String orderId,String amount, HttpServletRequest request) {
+		try {
 		if (oConvertUtils.isEmpty(orderId) || oConvertUtils.isEmpty(amount)){
 			return Result.error("参数错误");
 		}
-		BigDecimal money;
+		BigDecimal clientMoney;
 		try {
-			money = new BigDecimal(amount).setScale(2, java.math.RoundingMode.HALF_UP);
+			clientMoney = new BigDecimal(amount).setScale(2, java.math.RoundingMode.HALF_UP);
 		} catch (Exception e) {
 			return Result.error("金额格式错误");
-		}
-		if (money.compareTo(BigDecimal.ZERO) <= 0) {
-			return Result.error("结算金额必须大于0");
 		}
 		LoginUser user = (LoginUser) SecurityUtils.getSubject().getPrincipal();
 		if (user == null) {
@@ -248,8 +264,13 @@ public class WxPayController extends AbstractWxPayApiController {
 		if (!user.getId().equals(order.getPostUserId())) {
 			return Result.error("仅老板可结算工资");
 		}
-		if (!BizConstants.ORDER_STATUS_WAIT_PAY.equals(order.getOrderStatus())) {
-			return Result.error("订单状态不是待结算");
+		// 防连点重复预下单
+		idempotentHelper.assertPaySalaryOnce(orderId);
+		BigDecimal money;
+		try {
+			money = jobOrderService.resolvePaySalaryAmount(orderId, clientMoney);
+		} catch (Exception e) {
+			return Result.error(e.getMessage());
 		}
 		String ip = IpKit.getRealIp(request);
 		if (StrKit.isBlank(ip)) {
@@ -293,6 +314,12 @@ public class WxPayController extends AbstractWxPayApiController {
 		log.info("小程序支付的参数:" + jsonStr);
 		jobOrderService.updatePayMoney(orderId,orderSn,money.toPlainString(), BizConstants.PAY_TYPE_WX);
 		return Result.ok(jsonStr);
+		} catch (BizException e) {
+			return Result.error(e.getErrCode(), e.getMessage());
+		} catch (Exception e) {
+			log.error("微信结算下单失败 orderId={}", orderId, e);
+			return Result.error(e.getMessage());
+		}
 	}
 
 	/**
@@ -316,8 +343,17 @@ public class WxPayController extends AbstractWxPayApiController {
 					//积分充值
 					integralRechargeService.updateRechargeOrder(out_trade_no);
 				}else if (ATTACH_BALANCE.equals(attach)){
-					//余额充值
-
+					//余额充值：校验渠道金额
+					String totalFee = params.get("total_fee");
+					java.math.BigDecimal paidAmount = null;
+					if (oConvertUtils.isNotEmpty(totalFee)) {
+						paidAmount = new java.math.BigDecimal(totalFee).movePointLeft(2);
+					}
+					boolean ok = balanceRechargeService.paySuccess(out_trade_no, paidAmount);
+					if (!ok) {
+						log.error("余额充值回调处理失败 out_trade_no={}, total_fee={}", out_trade_no, totalFee);
+						return null;
+					}
 				}else if (ATTACH_SALARY.equals(attach)){
 					//工资支付：校验渠道金额（分→元）
 					String totalFee = params.get("total_fee");

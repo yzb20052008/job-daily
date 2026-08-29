@@ -456,8 +456,8 @@
 						return;
 					}
 					if (this.callIntegral > 0) {
-						//判断积分是否足够
-						if (this.userInfo.integral > 0) {
+						//判断积分是否足够（须 >= 所需积分）
+						if (Number(this.userInfo.integral) >= Number(this.callIntegral)) {
 							this.mShow = true;
 							this.showcancel = false;
 							this.mType = 2;
@@ -498,8 +498,8 @@
 						return;
 					}
 					if (this.callIntegral > 0) {
-						//判断积分是否足够
-						if (this.userInfo.integral > 0) {
+						//判断积分是否足够（须 >= 所需积分）
+						if (Number(this.userInfo.integral) >= Number(this.callIntegral)) {
 							this.mShow = true;
 							this.showcancel = false;
 							this.mType = 2;
@@ -512,7 +512,7 @@
 							this.showcancel = true;
 							this.mTitle = "您当前积分不足";
 							this.mContent = "需要<strong style='color:red;padding:0 4px'>" + this.callIntegral +
-								"</strong>积分联系对方，是否前往获取积分";
+								"</strong>积分报名，是否前往获取积分";
 							this.mConfirmText = "获取积分"
 						}
 					}
@@ -803,7 +803,8 @@
 
 	.detail {
 		// padding: 20upx;
-		padding-bottom: 150upx;
+		padding-bottom: calc(150upx + constant(safe-area-inset-bottom));
+		padding-bottom: calc(150upx + env(safe-area-inset-bottom));
 	}
 
 	.boss-info {
@@ -1102,8 +1103,12 @@
 	.bottom {
 		position: fixed;
 		bottom: 0;
+
 		width: 100%;
 		padding: 10upx 0;
+		/* 全面屏底部安全区 */
+		padding-bottom: calc(10upx + constant(safe-area-inset-bottom));
+		padding-bottom: calc(10upx + env(safe-area-inset-bottom));
 		background-color: #fff;
 		border-top: 1upx solid #eee;
 	}
@@ -1165,8 +1170,13 @@
 			position: relative;
 			position: fixed;
 			bottom: 0;
+			/* 全面屏底部安全区 */
+			padding-bottom: constant(safe-area-inset-bottom);
+			padding-bottom: env(safe-area-inset-bottom);
+
 			width: 750rpx;
-			height: 310rpx;
+			min-height: 310rpx;
+			height: auto;
 			overflow: hidden;
 			background-color: #fff;
 			border-radius: 24rpx 24rpx 0 0;

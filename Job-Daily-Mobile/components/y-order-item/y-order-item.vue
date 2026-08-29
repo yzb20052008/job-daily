@@ -7,7 +7,8 @@
 				</view>
 			</view>
 			<view class="y-time">
-				<text>工作时间：{{$u.timeFormat (new Date(item.startTime).getTime(),'mm-dd hh:MM')}} 至 {{$u.timeFormat (new Date(item.endTime).getTime(),'mm-dd hh:MM')}}</text>
+				<!-- 直接传字符串，由 uView timeFormat 做 -/ 兼容，避免 iOS new Date('yyyy-MM-dd HH:mm') 失效 -->
+				<text>工作时间：{{$u.timeFormat(item.startTime,'mm-dd hh:MM')}} 至 {{$u.timeFormat(item.endTime,'mm-dd hh:MM')}}</text>
 			</view>
 			<view class="y-status">
 				<view class="tags-item" v-if="item.postStatus==2">

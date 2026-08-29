@@ -38,4 +38,9 @@ public interface IUmsAccountService extends IService<UmsAccount> {
      */
     UmsAccount findByMemberId(String userId);
 
+    /**
+     * 按用户行锁账户（须在事务内调用）
+     */
+    UmsAccount lockByUserId(String userId);
+
 }

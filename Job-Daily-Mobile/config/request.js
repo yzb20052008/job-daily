@@ -121,6 +121,7 @@ uni.$u.http.interceptors.response.use(async (response) => { /* 对响应成功�
     }else{
         // 如果没有显式定义custom的toast参数为false的话，默认对报错进行toast弹出提示
         if (custom.toast !== false) {
+			// 业务错误码（如 90001）仍展示 message，兼容 W6 统一错误码
 			if(data.message!="该用户不存在，请注册"){
 				uni.$u.toast(data.message || data.msg)
 			}

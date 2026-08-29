@@ -1,9 +1,8 @@
 package org.jeecg.modules.job.quartz;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jeecg.common.util.DateUtils;
 import org.jeecg.modules.job.job.service.IJobOrderService;
-import org.jeecg.modules.job.job.service.IJobPostService;
+import org.jeecg.modules.job.quartz.support.MonitoredJobSupport;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -11,8 +10,7 @@ import org.quartz.JobExecutionException;
 import javax.annotation.Resource;
 
 /**
- *  订单定时任务
- * 
+ * 订单定时任务（超时自动完结等）
  */
 @Slf4j
 public class OrderJob implements Job {
@@ -21,10 +19,8 @@ public class OrderJob implements Job {
 	private IJobOrderService orderService;
 
 	@Override
-	public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
-		log.info(" Job Execution key："+jobExecutionContext.getJobDetail().getKey());
-		log.info(String.format(" 订单定时任务 OrderJob !  时间:" + DateUtils.getTimestamp()));
-		//超时自动下架
-		orderService.autoFinishOrder();
+	public void execute(JobExecutionContext context) throws JobExecutionException {
+		// 待确认超时取消 + 待开工过期取消 + 待评价超时完结
+		MonitoredJobSupport.run(context, "OrderJob", () -> orderService.autoFinishOrder());
 	}
 }

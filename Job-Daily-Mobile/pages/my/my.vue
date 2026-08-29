@@ -590,6 +590,7 @@
 				}
 				if (this.userInfo.token) {
 					params.userId = this.userInfo.id;
+					params.roleCode = this.memberRole || this.userInfo.memberRole;
 				} else {
 					return;
 				}
@@ -597,8 +598,8 @@
 					params: params
 				});
 				if (res) {
-					let count = res.privateCount + res.violationCount + res.publicCount + res.orderCount + res
-						.financeCount;
+					let count = (res.privateCount || 0) + (res.violationCount || 0) + (res.publicCount || 0)
+						+ (res.orderCount || 0) + (res.financeCount || 0);
 					if (count > 0) {
 						uni.setTabBarBadge({
 							index: 1,

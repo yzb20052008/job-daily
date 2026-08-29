@@ -25,7 +25,7 @@
 						<text v-if="item.orderStatus==0">您需在2小时内确认接单，超时将自动取消</text>
 						<text v-else-if="item.orderStatus==1">已确认接单，待工人到场开工</text>
 						<text
-							v-else-if="item.orderStatus==2">{{$u.timeFormat (new Date(item.startTime).getTime(),'mm-dd hh:MM')}}
+							v-else-if="item.orderStatus==2">{{$u.timeFormat(item.startTime,'mm-dd hh:MM')}}
 							已开工</text>
 						<text v-else-if="item.orderStatus==3">员工已工作完成，等待工资结算</text>
 						<text v-else-if="item.orderStatus==4">员工此次工作表现如何呢，期待您的评价</text>

@@ -7,7 +7,6 @@ import com.aliyun.tea.TeaModel;
 import com.google.gson.Gson;
 import org.jeecg.modules.job.api.model.BusinessLicenseModel;
 import org.jeecg.modules.job.api.model.BusinessLicenseResponse;
-import org.jeecg.modules.job.chatgpt.bean.ChatResponse;
 
 import java.io.InputStream;
 import java.net.URL;

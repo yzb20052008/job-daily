@@ -1,36 +1,34 @@
-# 日结招工软件
+# Job-Daily (Xiaolan Gig Work) — Daily-Wage Hiring Platform
 
-#### Description
-{**When you're done, you can delete the content in this README and update the file with details for others getting started with your repository**}
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-#### Software Architecture
-Software architecture description
+Open-source **daily-wage / gig hiring** platform (not a traditional resume job board). Includes **UniApp mini program**, **Vue admin**, and **Java backend**, covering posting, apply, clock-in, payroll, reviews, and withdrawals. Suitable for private deployment and secondary development.
 
-#### Installation
+Full Chinese documentation: **[docs/开源/README.md](docs/开源/README.md)**
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+## Repositories
 
-#### Instructions
+| Path | Description |
+|------|-------------|
+| `Job-Daily-Admin` | Backend (JeecgBoot + `qkl-module-job`) |
+| `Job-Daily-Web` | Admin UI (Vue2) |
+| `Job-Daily-Mobile` | Mobile (UniApp) |
+| `docs/开源/` | Official open-source docs (deploy, architecture, security) |
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+## Quick start
 
-#### Contribution
+1. MySQL + Redis; run scripts under `Job-Daily-Admin/db/` (see `db/README.md`)
+2. Configure backend via `application-*.yml.example` — **never commit secrets**
+3. Start `JeecgSystemApplication`
+4. Admin: `npm run serve` in `Job-Daily-Web`
+5. Mobile: set `baseUrl` in `Job-Daily-Mobile/config/baseUrl.js`
 
-1.  Fork the repository
-2.  Create Feat_xxx branch
-3.  Commit your code
-4.  Create Pull Request
+## License
 
+Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-#### Gitee Feature
+Operators are responsible for payment merchant onboarding, data privacy, and labor compliance.
 
-1.  You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2.  Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3.  Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4.  The most valuable open source project [GVP](https://gitee.com/gvp)
-5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+## Commercial support
+
+See [docs/开源/10-商业支持.md](docs/开源/10-商业支持.md). Prefer platform Issues tagged `[商务]` for partnership inquiries.
