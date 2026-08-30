@@ -41,6 +41,8 @@
 
 数据库脚本说明：[../../Job-Daily-Admin/db/README.md](../../Job-Daily-Admin/db/README.md)
 
+界面截图：[images/README.md](images/README.md)（产品介绍见 [01-产品介绍](01-产品介绍.md) 第 6 节）
+
 ---
 
 ## 推荐阅读路径

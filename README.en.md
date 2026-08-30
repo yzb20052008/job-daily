@@ -31,4 +31,4 @@ Operators are responsible for payment merchant onboarding, data privacy, and lab
 
 ## Commercial support
 
-See [docs/开源/10-商业支持.md](docs/开源/10-商业支持.md). Prefer platform Issues tagged `[商务]` for partnership inquiries.
+See [docs/开源/10-商业支持.md](docs/开源/10-商业支持.md). Prefer platform Issues tagged `[商务]`, or the maintainer site [qingkonglan.com](https://www.qingkonglan.com/).
