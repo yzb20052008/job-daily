@@ -31,14 +31,14 @@
 
     <!-- 操作按钮区域 -->
     <div class="table-operator">
-      <a-button @click="handleAdd" type="primary" icon="plus">新增</a-button>
-      <!-- <a-button type="primary" icon="download" @click="handleExportXls('参数配置')">导出</a-button>
+      <a-button @click="handleAdd" type="primary" icon="plus" v-has="'base:base_config:add'">新增</a-button>
+      <!-- <a-button type="primary" icon="download" @click="handleExportXls('参数配置')" v-has="'base:base_config:exportXls'">导出</a-button>
       <a-upload name="file" :showUploadList="false" :multiple="false" :headers="tokenHeader" :action="importExcelUrl" @change="handleImportExcel">
-        <a-button type="primary" icon="import">导入</a-button>
+        <a-button type="primary" icon="import" v-has="'base:base_config:importExcel'">导入</a-button>
       </a-upload> -->
       <!-- 高级查询区域 -->
       <!-- <j-super-query :fieldList="superFieldList" ref="superQueryModal" @handleSuperQuery="handleSuperQuery"></j-super-query> -->
-      <a-dropdown v-if="selectedRowKeys.length > 0">
+      <a-dropdown v-if="selectedRowKeys.length > 0" v-has="'base:base_config:deleteBatch'">
         <a-menu slot="overlay">
           <a-menu-item key="1" @click="batchDel"><a-icon type="delete"/>删除</a-menu-item>
         </a-menu>
@@ -88,22 +88,13 @@
         </template>
 
         <span slot="action" slot-scope="text, record">
-          <a @click="handleEdit(record)">编辑</a>
-
-          <a-divider type="vertical" />
-          <a-dropdown>
-            <a class="ant-dropdown-link">更多 <a-icon type="down" /></a>
-            <a-menu slot="overlay">
-              <a-menu-item>
-                <a @click="handleDetail(record)">详情</a>
-              </a-menu-item>
-              <a-menu-item>
-                <a-popconfirm title="确定删除吗?" @confirm="() => handleDelete(record.id)">
-                  <a>删除</a>
-                </a-popconfirm>
-              </a-menu-item>
-            </a-menu>
-          </a-dropdown>
+          <a @click="handleEdit(record)" v-has="'base:base_config:edit'">编辑</a>
+          <a-divider type="vertical" v-has="'base:base_config:edit'" />
+          <a @click="handleDetail(record)">详情</a>
+          <a-divider type="vertical" v-has="'base:base_config:delete'" />
+          <a-popconfirm title="确定删除吗?" @confirm="() => handleDelete(record.id)" v-has="'base:base_config:delete'">
+            <a>删除</a>
+          </a-popconfirm>
         </span>
 
       </a-table>

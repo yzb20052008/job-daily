@@ -20,17 +20,11 @@ import org.springframework.web.servlet.ModelAndView;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.jeecg.common.aspect.annotation.AutoLog;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 
- /**
- * @Description: 基础配置
- * @Author: qingkonglan
- * @Date:   2024-07-30
- * @Version: V1.0
- *
- * <p>鉴权说明：由菜单「基础配置」控制入口即可；不再用按钮级 @RequiresPermissions。
- * 原因：按钮权限码须与库表 perms 精确一致（base:base_config:edit），
- * 仅勾选菜单或 perms 被改写时会出现「已配置仍提示没有权限」。
- * 写操作仍记 @AutoLog，须登录后访问。</p>
+/**
+ * 基础配置
+ * <p>列表查询走菜单权限；增删改等写操作校验按钮权限码（与 sys_permission.perms 一致）。</p>
  */
 @Api(tags="基础配置")
 @RestController
@@ -60,6 +54,7 @@ public class BaseConfigController extends JeecgController<BaseConfig, IBaseConfi
 	 */
 	@AutoLog(value = "基础配置-添加")
 	@ApiOperation(value="基础配置-添加", notes="基础配置-添加")
+	@RequiresPermissions("base:base_config:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody BaseConfig baseConfig) {
 		baseConfigService.save(baseConfig);
@@ -71,6 +66,7 @@ public class BaseConfigController extends JeecgController<BaseConfig, IBaseConfi
 	 */
 	@AutoLog(value = "基础配置-编辑")
 	@ApiOperation(value="基础配置-编辑", notes="基础配置-编辑")
+	@RequiresPermissions("base:base_config:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody BaseConfig baseConfig) {
 		baseConfigService.updateById(baseConfig);
@@ -82,6 +78,7 @@ public class BaseConfigController extends JeecgController<BaseConfig, IBaseConfi
 	 */
 	@AutoLog(value = "基础配置-通过id删除")
 	@ApiOperation(value="基础配置-通过id删除", notes="基础配置-通过id删除")
+	@RequiresPermissions("base:base_config:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
 		baseConfigService.removeById(id);
@@ -93,6 +90,7 @@ public class BaseConfigController extends JeecgController<BaseConfig, IBaseConfi
 	 */
 	@AutoLog(value = "基础配置-批量删除")
 	@ApiOperation(value="基础配置-批量删除", notes="基础配置-批量删除")
+	@RequiresPermissions("base:base_config:deleteBatch")
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<String> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
 		this.baseConfigService.removeByIds(Arrays.asList(ids.split(",")));
@@ -115,6 +113,7 @@ public class BaseConfigController extends JeecgController<BaseConfig, IBaseConfi
     /**
     * 导出excel
     */
+    @RequiresPermissions("base:base_config:exportXls")
     @RequestMapping(value = "/exportXls")
     public ModelAndView exportXls(HttpServletRequest request, BaseConfig baseConfig) {
         return super.exportXls(request, baseConfig, BaseConfig.class, "基础配置");
@@ -123,6 +122,7 @@ public class BaseConfigController extends JeecgController<BaseConfig, IBaseConfi
     /**
       * 通过excel导入数据
     */
+    @RequiresPermissions("base:base_config:importExcel")
     @RequestMapping(value = "/importExcel", method = RequestMethod.POST)
     public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
         return super.importExcel(request, response, BaseConfig.class);

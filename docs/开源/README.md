@@ -45,6 +45,17 @@
 
 ---
 
+## 在线体验
+
+| 项 | 内容 |
+|----|------|
+| 体验小程序 | ![二维码](images/mobile-mp-qrcode.jpg) |
+| 管理后台 | [http://lg.qinkonglan.cn/](http://lg.qinkonglan.cn/) |
+| 演示账号 | `test` / `test@123`（仅体验，可能定期重置） |
+| 技术问题 | 请提交代码托管平台 **Issue** |
+
+---
+
 ## 推荐阅读路径
 
 ```text

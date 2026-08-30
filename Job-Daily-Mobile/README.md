@@ -34,6 +34,14 @@
 
 界面截图见：[docs/开源/images](../docs/开源/images/README.md)
 
+### 在线体验
+
+微信扫码体验小程序：
+
+![体验小程序](../docs/开源/images/mobile-mp-qrcode.jpg)
+
+管理后台：[http://lg.qinkonglan.cn/](http://lg.qinkonglan.cn/)（`test` / `test@123`）。技术问题请提交 **Issue**。
+
 ---
 
 ## 本地运行

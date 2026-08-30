@@ -16,6 +16,18 @@
 | `admin-order-list.png` | 管理端订单信息列表 |
 | `admin-user-list.png` | 管理端用户列表 |
 | `admin-base-config.png` | 管理端基础配置 |
+| `mobile-mp-qrcode.jpg` | 体验小程序二维码 |
+
+## 在线体验
+
+| 项 | 内容 |
+|----|------|
+| 小程序 | 扫码下图（微信） |
+| 管理后台 | [http://lg.qinkonglan.cn/](http://lg.qinkonglan.cn/) |
+| 账号 | `test` / `test@123`（演示用，可能重置） |
+| 技术支持 | 代码托管平台 **Issue** |
+
+![体验小程序](mobile-mp-qrcode.jpg)
 
 ## 引用示例
 

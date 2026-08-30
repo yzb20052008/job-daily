@@ -46,8 +46,11 @@ A：在 Apache-2.0 条款下可以；请保留 LICENSE/NOTICE，自担合规，�
 **Q：可以拿去卖源码吗？**  
 A：许可证未禁止销售副本，但须遵守 Apache-2.0 归属与声明义务，且不得虚假宣称「官方唯一」。维护者可对恶意倒卖不做技术支持。
 
-**Q：哪里能看界面效果？**  
-A：见 [01-产品介绍](01-产品介绍.md) 第 6 节，以及 [images/README.md](images/README.md) 截图清单。
+**Q：哪里能在线体验？**  
+A：微信扫码体验小程序（见 [images/mobile-mp-qrcode.jpg](images/mobile-mp-qrcode.jpg)）；管理后台 [http://lg.qinkonglan.cn/](http://lg.qinkonglan.cn/)，账号 `test` / `test@123`。界面截图见 [01-产品介绍](01-产品介绍.md) 第 6 节。
+
+**Q：有技术问题怎么办？**  
+A：请在代码托管平台提交 **Issue**，标明端（Admin / Web / Mobile）与复现步骤。见 [贡献指南](09-贡献指南.md)。
 
 **Q：如何获取商业支持？**  
 A：见 [10-商业支持](10-商业支持.md)。
