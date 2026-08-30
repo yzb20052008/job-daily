@@ -1,36 +1,46 @@
-# 求职招聘系统移动端
+# Job-Daily-Mobile (Xiaolan Gig Work — Mobile)
 
-#### Description
-求职招聘系统包括移动端和管理后台，移动端包含招聘角色和求职角色，可任意进行角色切换。
+UniApp client for the **daily-wage / gig hiring** platform. Supports worker and employer roles: browse/post jobs, apply, clock-in, payroll, wallet withdrawal, and messaging.
 
-#### Software Architecture
-Software architecture description
+> Monorepo overview: [root README](../README.md) · Docs (Chinese): [docs/开源](../docs/开源/README.md)
 
-#### Installation
+## Stack
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+- UniApp (Vue 2) + uView 2.x
+- Vuex store
+- Primary target: WeChat Mini Program (App / H5 optional)
+- API: `Job-Daily-Admin` `/api/*`
 
-#### Instructions
+## Quick start
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+1. Start the Java backend (`Job-Daily-Admin`)
+2. Copy `config/baseUrl.js.example` → `config/baseUrl.js` and set API / share URLs  
+   (`baseUrl.js` is gitignored — do not commit secrets or production hosts)
+3. Open this folder in HBuilderX → Run to WeChat DevTools
+4. Set Mini Program AppId in `manifest.json`
 
-#### Contribution
+Map keys should come from admin `base_config.map_key`, not hard-coded in the repo.
 
-1.  Fork the repository
-2.  Create Feat_xxx branch
-3.  Commit your code
-4.  Create Pull Request
+## Layout
 
+| Path | Role |
+|------|------|
+| `pages/index` | Splash, home (worker / boss) |
+| `pages/job` | Post detail, publish, auth |
+| `pages/order` | Orders, worker manage, settle, review |
+| `pages/finance` | Wallet, withdraw |
+| `pages/message` | Messages (role-scoped) |
+| `pages/my` / `resume` / `user` | Profile, resume, account |
+| `config/` | `api.js`, `request.js`, `login.js`, `pay.js`, `common.js` |
 
-#### Gitee Feature
+## Docs
 
-1.  You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2.  Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3.  Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4.  The most valuable open source project [GVP](https://gitee.com/gvp)
-5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+- [Quick start](../docs/开源/04-快速开始.md)
+- [Config](../docs/开源/06-配置说明.md)
+- [Business flows](../docs/开源/07-业务说明.md)
+- [Screenshots](../docs/开源/images/README.md)
+- [Commercial support](../docs/开源/10-商业支持.md) · [Website](https://www.qingkonglan.com/)
+
+## License
+
+Apache License 2.0 — see [LICENSE](../LICENSE).
