@@ -16,7 +16,7 @@
 | `admin-order-list.png` | 管理端订单信息列表 |
 | `admin-user-list.png` | 管理端用户列表 |
 | `admin-base-config.png` | 管理端基础配置 |
-| `mobile-mp-qrcode.jpg` | 体验小程序二维码 |
+| `mobile-mp-qrcode.jpg` | 体验小程序二维码 | 
 
 ## 在线体验
 
