@@ -1,8 +1,8 @@
-<template>
+﻿<template>
 	<view class="content">
 		<public-module></public-module>
 		<view class="top-bar" :style="{top:titleTop+'px'}" :class="{ 'scrolled': isScrolled }">
-			<text class="title" :class="{ 'scrolled-title': isScrolled }" v-if="!isScrolled">小蓝直聘</text>
+			<text class="title" :class="{ 'scrolled-title': isScrolled }" v-if="!isScrolled">小蓝零工</text>
 			<view class="search-box" :class="{ 'scrolled-search': isScrolled }" @click="toSearch">
 				<text class="search-icon yzb yzb-search"></text>
 				<text class="search-placeholder" :class="{ 'scrolled-placeholder': isScrolled }">{{placeholder}}</text>
@@ -132,7 +132,7 @@
 					textNoMore: '-- 没有更多 --',
 					empty: {
 						tip: '暂无数据', // 提示
-						icon: 'https://img.qinkonglan.cn/imgs/data.jpg'
+						icon: 'https://cdn.example.com/imgs/data.jpg'
 					}
 				},
 				placeholder: '搜索你想找的候选人',

@@ -256,6 +256,10 @@ function canReuseGeoCache(cache, lat, lng, maxMeters, maxAgeMs) {
 	if (!cache || !cache._geoTs || !cache.location) {
 		return false;
 	}
+	// 逆地理失败降级包禁止复用，避免「地址解析暂不可用」被 TTL 卡住
+	if (cache._geoFallback) {
+		return false;
+	}
 	if (!cache.ad_info && !cache.address) {
 		return false;
 	}
@@ -280,6 +284,31 @@ function canReuseGeoCache(cache, lat, lng, maxMeters, maxAgeMs) {
 }
 
 /**
+ * 从腾讯逆地理结果拼详细地址（address 可能为空，优先 formatted_addresses）
+ */
+function pickGeoAddress(raw, adInfo) {
+	if (!raw && !adInfo) {
+		return '';
+	}
+	const r = raw || {};
+	const ad = adInfo || r.ad_info || {};
+	const formatted = r.formatted_addresses || {};
+	const direct = r.address || formatted.recommend || formatted.rough || '';
+	if (direct) {
+		return direct;
+	}
+	const parts = [ad.province, ad.city, ad.district].filter(Boolean);
+	// 省市去重（直辖市 city==province）
+	const uniq = [];
+	parts.forEach(p => {
+		if (uniq.indexOf(p) < 0) {
+			uniq.push(p);
+		}
+	});
+	return uniq.join('');
+}
+
+/**
  * 逆地理失败或无结果时的降级包：优先沿用缓存城市/地址，否则用默认值
  */
 function buildFallbackGeo(lat, lng, cached) {
@@ -288,7 +317,19 @@ function buildFallbackGeo(lat, lng, cached) {
 	const city = ad.city || last.city || DEFAULT_CITY_INFO.city;
 	const district = ad.district || last.area || DEFAULT_CITY_INFO.area;
 	const adcode = ad.adcode || last.areaCode || '';
-	const address = (cached && cached.address) || last.address || DEFAULT_ADDRESS;
+	const province = ad.province || last.province || '';
+	// 有城市信息时拼可读地址，避免首页有城市、打卡却显示「解析暂不可用」
+	let address = (cached && cached.address) || last.address || '';
+	if (!address || address === DEFAULT_ADDRESS) {
+		address = pickGeoAddress(null, {
+			province: province,
+			city: city,
+			district: district
+		});
+	}
+	if (!address || address === '附近') {
+		address = DEFAULT_ADDRESS;
+	}
 	return {
 		location: { lat: lat, lng: lng },
 		latitude: lat,
@@ -296,7 +337,7 @@ function buildFallbackGeo(lat, lng, cached) {
 		address: address,
 		ad_info: {
 			nation: ad.nation || '中国',
-			province: ad.province || '',
+			province: province,
 			city: city,
 			district: district,
 			adcode: adcode || '000000'
@@ -311,11 +352,12 @@ function normalizeGeoResult(raw, lat, lng) {
 		return null;
 	}
 	const location = raw.location || { lat: lat, lng: lng };
+	const address = pickGeoAddress(raw, raw.ad_info) || DEFAULT_ADDRESS;
 	return Object.assign({}, raw, {
 		location: location,
 		latitude: location.lat != null ? location.lat : lat,
 		longitude: location.lng != null ? location.lng : lng,
-		address: raw.address || DEFAULT_ADDRESS,
+		address: address,
 		_geoTs: Date.now(),
 		_geoFallback: false
 	});
@@ -390,6 +432,7 @@ function loGetLocation(successCallback, errCallback, isGeoCode = true, isOpenSet
 		}).then(res => {
 			const normalized = normalizeGeoResult(res, latitude, longitude);
 			if (!normalized) {
+				console.warn('逆地理结果缺 ad_info，使用降级默认值', res);
 				const fallback = buildFallbackGeo(latitude, longitude, cached);
 				writeGeoCache(fallback);
 				successCallback && successCallback(fallback);
@@ -399,6 +442,15 @@ function loGetLocation(successCallback, errCallback, isGeoCode = true, isOpenSet
 			successCallback && successCallback(normalized);
 		}).catch(err => {
 			console.warn('逆地理编码失败，使用降级默认值', err);
+			// 打卡场景给出可操作提示（常见：map_key 未配 / Key 无效 / 开了签名校验）
+			if (purpose === 'address') {
+				const msg = (err && (err.message || err.msg)) || '';
+				uni.showToast({
+					title: msg && msg.length < 40 ? msg : '地址解析失败，请检查地图Key配置',
+					icon: 'none',
+					duration: 2500
+				});
+			}
 			const fallback = buildFallbackGeo(latitude, longitude, cached);
 			writeGeoCache(fallback);
 			successCallback && successCallback(fallback);

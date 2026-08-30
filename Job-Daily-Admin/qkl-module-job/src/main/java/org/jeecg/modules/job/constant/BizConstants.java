@@ -206,11 +206,6 @@ public interface BizConstants {
     String MAP_KEY="map_key";
 
     /**
-     * 腾讯地图签名密钥 SK（仅服务端使用，勿下发客户端）
-     */
-    String MAP_SK="map_sk";
-
-    /**
      * 待评价超时自动完结（小时）
      */
     String EVALUATE_TIMEOUT_HOURS="evaluate_timeout_hours";

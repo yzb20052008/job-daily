@@ -12,7 +12,12 @@ public enum TransferApiEnum2  implements WxApiEnum {
     /**
      * 商户单号查询转账单
      */
-    TRANSFER_QUERY_BY_OUT_BILL_NO("/v3/fund-app/mch-transfer/transfer-bills/out-bill-no/%s", "商户单号查询转账单");
+    TRANSFER_QUERY_BY_OUT_BILL_NO("/v3/fund-app/mch-transfer/transfer-bills/out-bill-no/%s", "商户单号查询转账单"),
+
+    /**
+     * 查询商户账户实时余额（BASIC/OPERATION/FEES）
+     */
+    MERCHANT_FUND_BALANCE("/v3/merchant/fund/balance/%s", "查询商户账户实时余额");
 
 
     /**

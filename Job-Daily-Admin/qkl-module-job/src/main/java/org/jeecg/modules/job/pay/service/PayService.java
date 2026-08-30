@@ -148,6 +148,81 @@ public class PayService implements IPayService {
         return null;
     }
 
+    /**
+     * 审核前校验：微信商户运营户+基本户可用余额之和须 ≥ 提现金额。
+     * 查余额接口无权限/失败时拒绝放行，避免审核通过后转账因商户余额不足失败。
+     */
+    @Override
+    public void assertMerchantBalanceEnough(BigDecimal moneyYuan) {
+        long needFen = toFen(moneyYuan);
+        long availableFen = 0L;
+        int queried = 0;
+        StringBuilder detail = new StringBuilder();
+        // 商家转账可能从运营户或基本户出资，分别查询后合计可用
+        for (String accountType : new String[]{"OPERATION", "BASIC"}) {
+            try {
+                Long amt = queryMerchantAvailableFen(accountType);
+                if (amt != null) {
+                    queried++;
+                    availableFen += amt;
+                    detail.append(accountType).append('=').append(amt).append("分;");
+                }
+            } catch (JeecgBootException e) {
+                log.warn("查询商户余额失败 accountType={}, err={}", accountType, e.getMessage());
+                detail.append(accountType).append("失败:").append(e.getMessage()).append(';');
+            }
+        }
+        if (queried == 0) {
+            throw new JeecgBootException("无法查询微信商户余额（请确认已开通「查询账户实时余额」权限），禁止审核通过");
+        }
+        log.info("微信商户可用余额合计 availableFen={}, needFen={}, detail={}", availableFen, needFen, detail);
+        if (availableFen < needFen) {
+            BigDecimal availableYuan = BigDecimal.valueOf(availableFen).movePointLeft(2).stripTrailingZeros();
+            throw new JeecgBootException("微信商户可用余额不足（约"
+                    + availableYuan.toPlainString() + "元，本单需"
+                    + moneyYuan.stripTrailingZeros().toPlainString()
+                    + "元），请先充值商户余额后再审核");
+        }
+    }
+
+    /**
+     * 查询指定账户类型可用余额（分）；账户未开通返回 null；接口错误抛业务异常。
+     */
+    private Long queryMerchantAvailableFen(String accountType) {
+        try {
+            IJPayHttpResponse response = WxPayApi.v3(
+                    RequestMethodEnum.GET,
+                    WxDomainEnum.CHINA.toString(),
+                    String.format(TransferApiEnum2.MERCHANT_FUND_BALANCE.getUrl(), accountType),
+                    wxPayV3Bean.getMchId(),
+                    getSerialNumber(),
+                    null,
+                    wxPayV3Bean.getKeyPath(),
+                    "",
+                    AuthTypeEnum.RSA.getCode()
+            );
+            log.info("查询商户余额 accountType={}, status={}, body={}",
+                    accountType, response.getStatus(), response.getBody());
+            if (response.getStatus() == OK) {
+                JSONObject obj = JSONUtil.parseObj(response.getBody());
+                Long available = obj.getLong("available_amount");
+                return available == null ? 0L : available;
+            }
+            JSONObject err = JSONUtil.parseObj(response.getBody());
+            String code = err.getStr("code");
+            // 账户类型未开通：跳过该账户
+            if ("INVALID_REQUEST".equals(code) || "PARAM_ERROR".equals(code)) {
+                return null;
+            }
+            throw new JeecgBootException("查询商户" + accountType + "余额失败："
+                    + (err.getStr("message") != null ? err.getStr("message") : response.getBody()));
+        } catch (JeecgBootException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("查询商户余额异常 accountType={}", accountType, e);
+            throw new JeecgBootException("查询商户余额异常：" + e.getMessage());
+        }
+    }
 
     @Override
     public boolean transfer(String openId, BigDecimal money, String batchName, String remark) {

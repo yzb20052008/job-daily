@@ -47,7 +47,6 @@
 		mapState,
 		mapMutations
 	} from 'vuex';
-	import uploadImage from '@/plugins/ossutil/uploadFile';
 	import {
 		getDictItems
 	} from '@/config/api.js';
@@ -285,32 +284,7 @@
 				});
 			},
 
-			// 上传图片
-			uploadFile2() {
-				uni.showLoading({
-					title: '图片上传中'
-				});
-				let that = this;
-				uploadImage(0, this.tmpImageUrl, 'job/user/', result => {
-					console.log('图片上传结果：', result);
-					that.userInfo.avatar = result;
-					let param = {
-						avatar: result
-					};
-					this.$apis
-						.updateUser(param)
-						.then(res => {
-							this.setUserInfo(this.userInfo);
-							uni.$u.toast('操作成功');
-						})
-						.catch(err => {
-							console.log(err, 'catch');
-						});
-					uni.hideLoading();
-				});
-			},
-
-			// 上传图片
+			// 上传图片（后台中转）
 			uploadFile() {
 				uni.showLoading({
 					title: '图片上传中'
@@ -320,12 +294,16 @@
 					url: BaseUrl.baseUrl + "/api/file/upload",
 					filePath: this.tmpImageUrl,
 					name: 'file',
+					header: {
+						'X-Access-Token': (this.userInfo && this.userInfo.token) || ''
+					},
 					formData: {
-						biz: "odb/user"
+						biz: "job/user"
 					},
 					success: (res) => {
 						let data = res.data;
-						let imgUrl = JSON.parse(data).message;
+						let parsed = typeof data === 'string' ? JSON.parse(data) : data;
+						let imgUrl = parsed.message;
 						console.log('上传成功', imgUrl);
 						that.userInfo.avatar = imgUrl;
 						let param = {
@@ -344,6 +322,8 @@
 					},
 					fail: (res) => {
 						console.log('上传失败', res);
+						uni.hideLoading();
+						uni.$u.toast('上传失败');
 					},
 				});
 			},

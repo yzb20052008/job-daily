@@ -166,7 +166,6 @@
 		mapState,
 		mapMutations
 	} from 'vuex';
-	import uploadImage from '@/plugins/ossutil/uploadFile';
 	import BaseUrl from '@/config/baseUrl.js';
 	import {
 		getRegeo,
@@ -594,6 +593,9 @@
 						url: BaseUrl.baseUrl + "/api/file/upload",
 						filePath: url,
 						name: 'file',
+						header: {
+							'X-Access-Token': (uni.getStorageSync('userInfo') && uni.getStorageSync('userInfo').token) || ''
+						},
 						formData: {
 							biz: "worker/feedback"
 						},

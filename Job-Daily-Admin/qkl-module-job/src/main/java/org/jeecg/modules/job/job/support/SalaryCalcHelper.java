@@ -7,12 +7,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 /**
- * 用工结算金额核算：优先单价×工时，无法核算时允许协商金额（带上限）。
+ * 用工结算金额：系统可给出单价×工时建议值，老板最终以申报金额为准（仅要求大于 0）。
  */
 public final class SalaryCalcHelper {
-
-    /** 协商金额上限（元），防异常大额下单 */
-    private static final BigDecimal MAX_NEGOTIATED = new BigDecimal("99999.99");
 
     private SalaryCalcHelper() {
     }
@@ -33,24 +30,13 @@ public final class SalaryCalcHelper {
     }
 
     /**
-     * 解析并校验客户端申报金额：有核算价则必须一致；否则接受协商价。
+     * 解析老板申报结算金额：不强制等于核算价、不设金额上限，仅要求大于 0。
      */
     public static BigDecimal resolvePayAmount(JobOrder order, BigDecimal clientAmount) {
-        BigDecimal suggest = calcSuggestAmount(order);
-        if (suggest != null) {
-            if (clientAmount == null || clientAmount.compareTo(suggest) != 0) {
-                throw new JeecgBootException("结算金额须等于系统核算金额：" + suggest.toPlainString() + "元（单价×工时）");
-            }
-            return suggest;
-        }
         if (clientAmount == null || clientAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new JeecgBootException("结算金额必须大于0");
         }
-        BigDecimal money = clientAmount.setScale(2, RoundingMode.HALF_UP);
-        if (money.compareTo(MAX_NEGOTIATED) > 0) {
-            throw new JeecgBootException("结算金额超出上限");
-        }
-        return money;
+        return clientAmount.setScale(2, RoundingMode.HALF_UP);
     }
 
     /**

@@ -21,7 +21,7 @@
 | 用工闭环 | 发岗 → 报名 → 确认 → 打卡 → 结算 → 评价 → 提现 |
 | 资金能力 | 微信/支付宝结算回调、余额、提现审核与商家转账、对账任务 |
 | 可运营 | 岗位/认证审核、运营工作台、消息模板、定时任务告警 |
-| 可交付 | 数据库 baseline / upgrade / 菜单 / Quartz / Demo 种子脚本 |
+| 可交付 | 干净全库 SQL（`db/00_job_daily_clean.sql`）一键初始化 |
 
 ---
 
@@ -62,11 +62,11 @@ daily/
 ## 快速开始
 
 1. 准备：JDK 8+、Maven、MySQL 5.7+、Redis、Node.js 14+（管理端）、HBuilderX（移动端）
-2. 数据库：按 [Job-Daily-Admin/db/README.md](Job-Daily-Admin/db/README.md) 执行脚本
-3. 后端配置：参考 `application-dev.yml.example`，**勿提交真实密钥**
+2. 数据库：导入 [Job-Daily-Admin/db/00_job_daily_clean.sql](Job-Daily-Admin/db/00_job_daily_clean.sql)（说明见 [db/README.md](Job-Daily-Admin/db/README.md)）
+3. 后端配置：复制 `application-dev.yml.example` → 同目录 `application-dev.yml`（**真实文件已 gitignore，勿提交**）
 4. 启动后端主类：`JeecgSystemApplication`
-5. 管理端：`cd Job-Daily-Web && npm i && npm run serve`
-6. 移动端：配置 `Job-Daily-Mobile/config/baseUrl.js` 后用 HBuilderX 运行到微信开发者工具
+5. 管理端：复制 `.env.development.example` → `.env.development`，再 `npm i && npm run serve`
+6. 移动端：复制 `config/baseUrl.js.example` → `config/baseUrl.js` 后用 HBuilderX 运行
 
 逐步说明见：[docs/开源/04-快速开始.md](docs/开源/04-快速开始.md)  
 生产部署见：[docs/开源/05-部署指南.md](docs/开源/05-部署指南.md)
@@ -86,14 +86,16 @@ daily/
 | [安全合规](docs/开源/08-安全合规.md) | 上线安全清单 |
 | [商业支持](docs/开源/10-商业支持.md) | 定制/部署/升级合作 |
 | [FAQ](docs/开源/11-FAQ.md) | 常见问题 |
+| [开源脱敏清单](docs/开源/13-开源脱敏清单.md) | 发布前清理密钥与私有配置 |
 
----
+真实密钥与域名请放在**工程对应路径的本地文件**中（与 `*.example` 同目录），已由 `.gitignore` 忽略；可选个人备份见 `private/README.md`，勿提交公开仓库。
+
 
 ## 演示与截图
 
 建议自行部署后体验。可将截图放在 `docs/开源/images/`（相对路径引用），避免大量外链图片影响托管平台合规扫描。
 
-可选：执行 `Job-Daily-Admin/db/demo/` 下种子脚本生成体验岗位数据（**仅测试库**）。
+体验数据可在后台或小程序自行发布岗位；干净库不含演示岗位。
 
 ---
 

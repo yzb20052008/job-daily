@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="content">
 		<view class="order">
 			<view class="order-info">
@@ -66,12 +66,11 @@
 							style="color: red;font-weight: bold;">{{djsTime(currentItem.startTime,currentItem.endTime)}}</text>
 					</u-form-item>
 					<u-form-item label="结算工资" labelPosition="top" prop="amount">
-						<u-input placeholder="有单价时须等于单价×工时" type="digit" v-model="form.amount" prefixIcon="rmb"
-							prefixIconStyle="font-size: 22px;color: #909399"
-							:disabled="!!(currentItem.unitPrice && currentItem.duration)"></u-input>
+						<u-input placeholder="可按与工人协商金额修改" type="digit" v-model="form.amount" prefixIcon="rmb"
+							prefixIconStyle="font-size: 22px;color: #909399"></u-input>
 					</u-form-item>
 				</u-form>
-				<text class="tips">付工资前请确保金额已经与工人达成一致</text>
+				<text class="tips">已按单价×工时预填建议金额，可按协商结果修改后再支付</text>
 				<view class="pay">
 					<view class="pay-item" v-for="(item,index) in pays" :key="index" @click="selectPayType(index,item)">
 						<view class="left">
@@ -160,7 +159,7 @@
 					textNoMore: '-- 没有更多 --',
 					empty: {
 						tip: '空空如也', // 提示
-						icon: 'https://img.qinkonglan.cn/imgs/data.jpg'
+						icon: 'https://cdn.example.com/imgs/data.jpg'
 					}
 				},
 				query: {
@@ -227,7 +226,14 @@
 		},
 
 		onLoad(options) {
-			this.selectedPay = this.pays[0];
+			// 微信小程序不展示支付宝；其它端保留
+			// #ifdef MP-WEIXIN
+			this.pays = this.pays.filter(p => p.payType !== 'aliPay');
+			// #endif
+			this.pays.forEach((p, i) => {
+				p.selected = i === 0;
+			});
+			this.selectedPay = this.pays[0] || null;
 			this.id = options.id;
 			this.getPostDetail();
 			// this.getOrderStatistics();
@@ -276,7 +282,7 @@
 			toPay(item, index) {
 				this.currentItem = item;
 				this.currentItem.index = index;
-				// 有单价×工时时预填系统核算金额，避免与后端校验不一致
+				// 预填建议金额（单价×工时），老板可改，后端不再强制一致
 				let suggest = '';
 				const price = Number(item.unitPrice || item.unit_price || 0);
 				const duration = Number(item.duration || 0);

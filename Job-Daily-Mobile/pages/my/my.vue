@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="content">
 		<public-module></public-module>
 		<f-navbar bgColor="#007aff" :navbarType="5" fontColor="#fff" transparentTitleColor="#000" :isShowLeft="false"

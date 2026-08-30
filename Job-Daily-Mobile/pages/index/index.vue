@@ -162,7 +162,7 @@
 						this.pendingConfirmTip = false;
 						this.showConfirmTransfer();
 					} else {
-						// 仍有待确认但已免打扰 / 无 package：只展示顶栏
+						// 仍有待确认但已免打扰 / 无 package：只展示底栏
 						this.pendingConfirmTip = true;
 					}
 				}).catch(err => {
@@ -170,8 +170,11 @@
 				});
 			},
 
-			/** 顶栏手动再次拉起确认（忽略免打扰） */
+			/** 底栏手动再次拉起确认（忽略免打扰） */
 			manualConfirmTransfer() {
+				if (this.confirmLock) {
+					return;
+				}
 				if (!this.confirmInfo || !this.confirmInfo.packageInfo) {
 					this.tryAutoConfirmTransfer();
 					return;
@@ -191,7 +194,7 @@
 				if (this.confirmLock) {
 					return;
 				}
-				if (!this.confirmInfo || !this.confirmInfo.packageInfo) {
+				if (!this.confirmInfo || !this.confirmInfo.packageInfo || !this.confirmInfo.outBillNo) {
 					uni.showToast({ title: '暂无待确认收款信息', icon: 'none' });
 					return;
 				}
@@ -202,32 +205,73 @@
 					});
 					return;
 				}
-				this.confirmLock = true;
 				const outBillNo = this.confirmInfo.outBillNo;
-				wx.requestMerchantTransfer({
-					mchId: this.confirmInfo.mchId,
-					appId: this.confirmInfo.appId,
-					package: this.confirmInfo.packageInfo,
-					success: (res) => {
-						// success 仅表示回到小程序，不代表付款成功
-						console.log('requestMerchantTransfer success:', res);
-						this.refreshTransferAfterConfirm(outBillNo);
-					},
-					fail: (res) => {
-						console.log('requestMerchantTransfer fail:', res);
-						// 用户取消或失败：免打扰，避免 onShow 再次自动弹
+				const mchId = this.confirmInfo.mchId;
+				const appId = this.confirmInfo.appId;
+				const packageInfo = this.confirmInfo.packageInfo;
+				this.confirmLock = true;
+				// 拉起前先查单：超时关单后禁止再用失效 package，避免「转账订单已超时」死循环
+				this.$apis.getTransferByOutBillNo({
+					params: { outBillNo }
+				}).then(res => {
+					const state = res && res.state;
+					if (state === 'SUCCESS') {
+						uni.showToast({ title: '收款已到账', icon: 'success' });
+						this.clearTransferSnooze(outBillNo);
+						this.confirmInfo = null;
+						this.pendingConfirmTip = false;
+						this.confirmLock = false;
+						return;
+					}
+					if (state === 'FAIL' || state === 'CANCELLED') {
+						this.onTransferClosed(outBillNo, res && res.fail_reason);
+						this.confirmLock = false;
+						return;
+					}
+					if (state && state !== 'WAIT_USER_CONFIRM') {
+						// 仍处理中：暂不拉起
+						uni.showToast({ title: '转账处理中，请稍后', icon: 'none' });
 						this.snoozeTransferConfirm(outBillNo);
 						this.pendingConfirmTip = true;
 						this.confirmLock = false;
-					},
+						return;
+					}
+					const pkg = (res && (res.package_info || res.packageInfo)) || packageInfo;
+					if (!pkg) {
+						uni.showToast({ title: '收款凭证已失效，请重新提现', icon: 'none' });
+						this.pendingConfirmTip = false;
+						this.confirmInfo = null;
+						this.confirmLock = false;
+						return;
+					}
+					wx.requestMerchantTransfer({
+						mchId: mchId,
+						appId: appId,
+						package: pkg,
+						success: () => {
+							// success 仅表示回到小程序，不代表付款成功
+							this.refreshTransferAfterConfirm(outBillNo);
+						},
+						fail: (err) => {
+							console.log('requestMerchantTransfer fail:', err);
+							// 超时/取消都查单，把微信侧 FAIL 同步回来并解冻
+							this.refreshTransferAfterConfirm(outBillNo, err);
+						},
+					});
+				}).catch(err => {
+					console.log('拉起前查单失败', err);
+					this.confirmLock = false;
+					uni.showToast({ title: '查单失败，请稍后重试', icon: 'none' });
 				});
 				// #endif
 			},
 
 			/**
 			 * 确认收款页返回后查单：仅终态才清队列；仍为 WAIT 则免打扰防连环弹
+			 * @param {string} outBillNo
+			 * @param {object} [wxFailRes] 微信 fail 回调，用于识别超时文案
 			 */
-			refreshTransferAfterConfirm(outBillNo) {
+			refreshTransferAfterConfirm(outBillNo, wxFailRes) {
 				if (!outBillNo) {
 					this.confirmLock = false;
 					return;
@@ -243,12 +287,13 @@
 						this.confirmInfo = null;
 						this.pendingConfirmTip = false;
 					} else if (state === 'FAIL' || state === 'CANCELLED') {
-						uni.showToast({ title: '转账已关闭', icon: 'none' });
-						this.clearTransferSnooze(outBillNo);
-						this.confirmInfo = null;
-						this.pendingConfirmTip = false;
+						this.onTransferClosed(outBillNo, res && res.fail_reason);
 					} else {
-						// 仍待确认等中间态：免打扰，改顶栏入口，杜绝连环弹窗
+						const errMsg = (wxFailRes && (wxFailRes.errMsg || wxFailRes.err_msg)) || '';
+						if (/超时|过期|closed|timeout/i.test(errMsg)) {
+							// 微信页已提示超时，但查单尚未关单：引导稍后或重新提现
+							uni.showToast({ title: '收款单已超时，请稍后重试或重新提现', icon: 'none', duration: 3000 });
+						}
 						this.snoozeTransferConfirm(outBillNo);
 						this.pendingConfirmTip = !!this.confirmInfo;
 					}
@@ -258,6 +303,23 @@
 					this.pendingConfirmTip = true;
 				}).finally(() => {
 					this.confirmLock = false;
+				});
+			},
+
+			/** 转账终态关闭：清提示并告知用户金额已退回、需重新提现 */
+			onTransferClosed(outBillNo, failReason) {
+				this.clearTransferSnooze(outBillNo);
+				this.confirmInfo = null;
+				this.pendingConfirmTip = false;
+				const reason = failReason || '';
+				const overdue = /OVERDUE|超时|过期/i.test(reason);
+				uni.showModal({
+					title: '收款已关闭',
+					content: overdue
+						? '确认收款已超过24小时失效，金额已退回余额，请重新发起提现。'
+						: '该笔转账已关闭，金额已退回余额，请重新发起提现。',
+					showCancel: false,
+					confirmText: '知道了'
 				});
 			},
 

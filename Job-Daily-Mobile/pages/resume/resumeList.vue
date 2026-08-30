@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="content">
 		<view class="top">
 			<view class="top-item" @click="selectCity">
@@ -36,7 +36,7 @@ export default {
 				noMoreSize: 10, //如果列表已无数据,可设置列表的总数量要大于半页才显示无更多数据;避免列表数据过少(比如只有一条数据),显示无更多数据会不好看; 默认5
 				empty: {
 					tip: '空空如也', // 提示
-					icon: 'https://img.qinkonglan.cn/imgs/data.jpg'
+					icon: 'https://cdn.example.com/imgs/data.jpg'
 				}
 			},
 			

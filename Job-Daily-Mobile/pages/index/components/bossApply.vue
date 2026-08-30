@@ -1,4 +1,4 @@
-<!-- 菜单悬浮的原理: 监听滚动条的位置大于某个值时,控制顶部菜单的显示和隐藏, 用法比sticky复杂, 但APP端可兼容低端机 -->
+﻿<!-- 菜单悬浮的原理: 监听滚动条的位置大于某个值时,控制顶部菜单的显示和隐藏, 用法比sticky复杂, 但APP端可兼容低端机 -->
 <template>
 	<view>
 		<public-module></public-module>
@@ -95,7 +95,7 @@
 					textNoMore: '-- 没有更多 --',
 					empty: {
 						tip: '空空如也', // 提示
-						icon: 'https://img.qinkonglan.cn/imgs/data.jpg'
+						icon: 'https://cdn.example.com/imgs/data.jpg'
 					}
 				},
 				tabs: [{

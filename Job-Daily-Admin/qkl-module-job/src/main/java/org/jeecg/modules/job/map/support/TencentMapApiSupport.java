@@ -20,13 +20,12 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.security.MessageDigest;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * 腾讯地图 WebService 封装（App/后台共用）
- * key/sk 从 base_config：map_key / map_sk
+ * <p>仅依赖 base_config.map_key；腾讯控制台请关闭该 Key 的「签名校验」，或使用无需 SK 的 WebService Key。</p>
  */
 @Slf4j
 @Component
@@ -131,13 +130,8 @@ public class TencentMapApiSupport {
             if (oConvertUtils.isNotEmpty(clientIp) && !isPrivateOrLocalIp(clientIp)) {
                 params.put("ip", clientIp);
             }
-            String mapSk = getMapSk();
-            String paramStr = buildParamString(params);
             String path = "/ws/location/v1/ip";
-            String url = QQ_MAP_BASE + path + "?" + paramStr;
-            if (oConvertUtils.isNotEmpty(mapSk)) {
-                url += "&sig=" + md5(path + "?" + paramStr + mapSk);
-            }
+            String url = QQ_MAP_BASE + path + "?" + buildParamString(params);
             JSONObject json = JSONObject.parseObject(doGet(url));
             if (json == null || json.getInteger("status") == null || json.getInteger("status") != 0) {
                 log.warn("腾讯地图 IP 定位失败: ip={}, resp={}", clientIp, json);
@@ -153,13 +147,8 @@ public class TencentMapApiSupport {
     }
 
     private Result<Object> requestGeocoder(Map<String, String> params) throws Exception {
-        String mapSk = getMapSk();
-        String paramStr = buildParamString(params);
         String path = "/ws/geocoder/v1/";
-        String url = QQ_MAP_BASE + path + "?" + paramStr;
-        if (oConvertUtils.isNotEmpty(mapSk)) {
-            url += "&sig=" + md5(path + "?" + paramStr + mapSk);
-        }
+        String url = QQ_MAP_BASE + path + "?" + buildParamString(params);
         JSONObject json = JSONObject.parseObject(doGet(url));
         if (json == null || json.getInteger("status") == null || json.getInteger("status") != 0) {
             log.error("腾讯地图 geocoder 失败: {}", json);
@@ -169,12 +158,7 @@ public class TencentMapApiSupport {
     }
 
     private Result<Object> requestPlaceList(String path, Map<String, String> params, String action) throws Exception {
-        String mapSk = getMapSk();
-        String paramStr = buildParamString(params);
-        String url = QQ_MAP_BASE + path + "?" + paramStr;
-        if (oConvertUtils.isNotEmpty(mapSk)) {
-            url += "&sig=" + md5(path + "?" + paramStr + mapSk);
-        }
+        String url = QQ_MAP_BASE + path + "?" + buildParamString(params);
         JSONObject json = JSONObject.parseObject(doGet(url));
         if (json == null || json.getInteger("status") == null || json.getInteger("status") != 0) {
             log.error("腾讯地图 {} 失败: {}", action, json);
@@ -182,14 +166,6 @@ public class TencentMapApiSupport {
         }
         JSONArray data = json.getJSONArray("data");
         return Result.OK(data != null ? data : new JSONArray());
-    }
-
-    private String getMapSk() {
-        BaseConfig skConfig = configService.getConfigByCode(BizConstants.MAP_SK);
-        if (skConfig != null && oConvertUtils.isNotEmpty(skConfig.getConfigValue())) {
-            return skConfig.getConfigValue().trim();
-        }
-        return "";
     }
 
     private String buildParamString(Map<String, String> params) throws UnsupportedEncodingException {
@@ -250,20 +226,6 @@ public class TencentMapApiSupport {
         httpGet.setHeader("Content-type", "application/json");
         try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
             return EntityUtils.toString(response.getEntity(), "UTF-8");
-        }
-    }
-
-    private String md5(String input) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] digest = md.digest(input.getBytes("UTF-8"));
-            StringBuilder sb = new StringBuilder();
-            for (byte b : digest) {
-                sb.append(String.format("%02x", b & 0xff));
-            }
-            return sb.toString();
-        } catch (Exception e) {
-            throw new RuntimeException("MD5计算失败", e);
         }
     }
 }

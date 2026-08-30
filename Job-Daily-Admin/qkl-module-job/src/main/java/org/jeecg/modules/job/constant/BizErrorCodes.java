@@ -42,6 +42,8 @@ public enum BizErrorCodes {
     WITHDRAW_ABOVE_MAX(50005, "提现金额超过单次限额"),
     WITHDRAW_DAY_LIMIT(50006, "今日提现金额已达上限"),
     WITHDRAW_CHANNEL_UNSUPPORTED(50007, "当前仅支持微信提现"),
+    WITHDRAW_FROZEN_SHORT(50008, "冻结余额不足，无法审核通过"),
+    WITHDRAW_MCH_BALANCE_SHORT(50009, "微信商户余额不足，无法审核通过"),
 
     VIP_REQUIRED(60001, "需要开通会员后操作"),
 

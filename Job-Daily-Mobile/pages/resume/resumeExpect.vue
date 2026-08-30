@@ -92,7 +92,6 @@
 </template>
 
 <script>
-	import uploadImage from '@/plugins/ossutil/uploadFile';
 	import BaseUrl from '@/config/baseUrl.js';
 	export default {
 		data() {

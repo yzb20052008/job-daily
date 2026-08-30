@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="content">
 		<public-module></public-module>
 		<!-- #ifdef MP-WEIXIN -->
@@ -166,7 +166,7 @@
 					textNoMore: '-- 没有更多 --',
 					empty: {
 						tip: '暂无数据', // 提示
-						icon: 'https://img.qinkonglan.cn/imgs/data.jpg'
+						icon: 'https://cdn.example.com/imgs/data.jpg'
 					}
 				},
 				placeholder: '搜索你想找的工作',

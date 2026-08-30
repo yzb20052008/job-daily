@@ -181,6 +181,16 @@
             dataIndex: 'money'
           },
           {
+            title: '当前冻结',
+            align: "center",
+            dataIndex: 'accountBalanceFrozen'
+          },
+          {
+            title: '当前可提',
+            align: "center",
+            dataIndex: 'accountBalanceWithdraw'
+          },
+          {
             title: '账户类型',
             align: "center",
             dataIndex: 'accountType_dictText'
@@ -291,7 +301,7 @@
         this.withdrawStatus = status;
         this.reason = '';
         if (status == 1) {
-          this.modalContent = '确认审核通过？通过后将发起微信转账，请确认账号无误。'
+          this.modalContent = '确认审核通过？将校验用户冻结余额与微信商户可用余额，通过后发起转账。商户余额不足时会拒绝。'
         } else if (status == 2) {
           this.modalContent = '确认审核不通过？拒绝后将解冻用户余额。'
         }

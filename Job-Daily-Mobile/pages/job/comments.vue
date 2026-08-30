@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="content">
 		<public-module></public-module>
 		<mescroll-uni :fixed="true" ref="mescrollRef" @init="mescrollInit" :up="upOption" @down="downCallback"
@@ -32,7 +32,7 @@
 					textNoMore: '-- 没有更多 --',
 					empty: {
 						tip: '空空如也', // 提示
-						icon: 'https://img.qinkonglan.cn/imgs/data.jpg'
+						icon: 'https://cdn.example.com/imgs/data.jpg'
 					}
 				},
 				query: {

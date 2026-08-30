@@ -1,11 +1,11 @@
-<template>
+﻿<template>
 	<view class="page">
 		<public-module></public-module>
 		<f-navbar bgColor="#007aff" :navbarType="5" fontColor="#fff" transparentTitleColor="#000" :isShowLeft="true"
 			:scrollTop="scrollTop" :title="resumeInfo.name" :isShowTransparentTitle="false">
 		</f-navbar>
 		<view class="none"  v-if="hasResume==false">
-			<u-empty mode="data" icon="https://img.qinkonglan.cn/imgs/data.jpg" text="无简历">
+			<u-empty mode="data" icon="https://cdn.example.com/imgs/data.jpg" text="无简历">
 			</u-empty>
 		</view>
 		<view class="resume" v-else>

@@ -1,0 +1,63 @@
+import {
+	getTabbarHeight
+} from '@/plugins/utils';
+
+/**
+ * 开源模板：复制本文件为同目录 baseUrl.js 后填写本地/生产地址。
+ * baseUrl.js 已 gitignore，勿提交真实域名。
+ *
+ *   copy baseUrl.js.example → baseUrl.js
+ */
+let baseUrl = "";
+if (process.env.NODE_ENV === 'development') {
+	// 开发环境：本机或局域网后端
+	baseUrl = 'http://127.0.0.1:8081'
+} else if (process.env.NODE_ENV === 'production') {
+	// 生产环境：自有 API 域名（须 HTTPS）
+	baseUrl = 'https://api.example.com/'
+}
+let shareUrl = "https://h5.example.com"; // 分享落地页
+let systemInfo = {
+	...getTabbarHeight(),
+	// #ifdef MP-ALIPAY
+	navBarH: uni.getSystemInfoSync().statusBarHeight + uni.getSystemInfoSync().titleBarHeight,
+	titleBarHeight: uni.getSystemInfoSync().titleBarHeight,
+	// #endif
+	// #ifndef MP-ALIPAY
+	navBarH: uni.getSystemInfoSync().statusBarHeight + 44,
+	titleBarHeight: 44,
+	// #endif
+};
+// #ifdef MP-WEIXIN
+systemInfo.platform = 'weixin'
+// #endif
+// #ifdef MP-ALIPAY
+systemInfo.platform = 'alipay'
+// #endif
+// #ifdef MP-TOUTIAO
+systemInfo.platform = 'toutiao'
+// #endif
+// #ifdef APP-PLUS
+systemInfo.platform = 'plus'
+// #endif
+
+const courtConfig = {
+	publicAppId: '',
+	baseUrl: baseUrl,
+	shareUrl: shareUrl,
+	systemInfo: systemInfo,
+	mapData: {
+		// 正式 key 由 splash 拉取 base_config.map_key；逆地理/搜索走后台 /api/map/*
+		key: '',
+		sk: '',
+	},
+	share: {
+		title: '日结零工',
+		desc: "日结零工招工系统",
+		link: "",
+		imgUrl: "",
+	},
+	/** 静态资源 CDN，部署时改为自有 OSS；空则页面需自备本地图 */
+	cdnBase: '',
+};
+export default Object.assign({}, courtConfig);

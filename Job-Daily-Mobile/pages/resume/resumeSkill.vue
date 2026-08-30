@@ -22,7 +22,6 @@
 </template>
 
 <script>
-	import uploadImage from '@/plugins/ossutil/uploadFile';
 	import BaseUrl from '@/config/baseUrl.js';
 	export default {
 		data() {
@@ -117,6 +116,9 @@
 						url: BaseUrl.baseUrl + "/api/file/upload",
 						filePath: url,
 						name: 'file',
+						header: {
+							'X-Access-Token': (uni.getStorageSync('userInfo') && uni.getStorageSync('userInfo').token) || ''
+						},
 						formData: {
 							biz: "worker/skill"
 						},

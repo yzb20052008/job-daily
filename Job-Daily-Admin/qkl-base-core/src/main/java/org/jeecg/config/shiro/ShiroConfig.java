@@ -105,7 +105,8 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/api/cover/**", "anon"); //覆盖物管理接口排除
         filterChainDefinitionMap.put("/api/dict/**", "anon"); //字典查询接口排除
         filterChainDefinitionMap.put("/api/login/**", "anon"); //登录接口排除
-        filterChainDefinitionMap.put("/api/file/**", "anon"); //文件管理接口排除
+        // 文件预览匿名；上传 /api/file/upload 需登录（走下方 jwt）
+        filterChainDefinitionMap.put("/api/file/static/**", "anon");
         filterChainDefinitionMap.put("/api/comment/getCommentList", "anon"); //留言列表接口排除
         filterChainDefinitionMap.put("/api/goeasy/**", "anon"); //goeasy管理模块接口排除
 

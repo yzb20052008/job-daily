@@ -1222,7 +1222,7 @@ public class AppLoginController {
                     sysUser.setPhone(wxPhoneInfo.getPhoneNumber());
                     sysUser.setNickname("用户"+sysUser.getPhone().substring(7,11));
                     sysUser.setRealname(sysUser.getNickname());
-                    sysUser.setAvatar("https://img.qinkonglan.cn/imgs/default.png");
+                    sysUser.setAvatar("");
                     sysUser.setStatus(1);
                     sysUser.setDelFlag(CommonConstant.DEL_FLAG_0);
                     sysUser.setUserIdentity(3);//移动端

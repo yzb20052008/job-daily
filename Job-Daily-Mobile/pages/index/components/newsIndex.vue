@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="content">
 		<public-module></public-module>
 		<view class="top-bar" :style="{top:titleTop+'px'}" :class="{ 'scrolled': isScrolled }">
@@ -83,7 +83,7 @@
 					textNoMore: '-- 没有更多 --',
 					empty: {
 						tip: '暂无数据', // 提示
-						icon: 'https://img.qinkonglan.cn/imgs/data.jpg'
+						icon: 'https://cdn.example.com/imgs/data.jpg'
 					}
 				},
 				placeholder: '关键字搜索新闻或服务',

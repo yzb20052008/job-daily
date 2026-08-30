@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="content">
 		<view class="header">
 			<view class="header-top">

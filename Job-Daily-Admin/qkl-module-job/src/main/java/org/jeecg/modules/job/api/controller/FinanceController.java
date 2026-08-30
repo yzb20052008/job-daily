@@ -11,6 +11,7 @@ import org.apache.shiro.SecurityUtils;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.common.system.vo.LoginUser;
 import org.jeecg.common.util.DateUtils;
+import org.jeecg.common.util.oConvertUtils;
 import org.jeecg.modules.job.constant.BizConstants;
 import org.jeecg.modules.job.exception.BizException;
 import org.jeecg.modules.job.pay.entity.TransferToUserResponse;
@@ -170,7 +171,7 @@ public class FinanceController {
     @Resource
     WxPayV3Bean wxPayV3Bean;
     /**
-     * 查询待确认提现收款信息
+     * 查询待确认提现收款信息（回列表前向微信查单，超时关单后不再返回失效 package）
      */
     @ResponseBody
     @RequestMapping(value = "/getTransferConfirmList", method = RequestMethod.GET)
@@ -178,12 +179,38 @@ public class FinanceController {
     public Result<Object> getTransferConfirmList(@RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
                                           @RequestParam(name="limit", defaultValue="10") Integer pageSize) {
         LoginUser user = (LoginUser) SecurityUtils.getSubject().getPrincipal();
-        IPage<UmsWithdraw> pageInfo = withdrawService.page(new Page<>(pageNo,pageSize),new QueryWrapper<>(new UmsWithdraw().setUserId(user.getId()).setTransferStatus(BizConstants.TRANSFER_STATUS_WAIT_USER_CONFIRM)).select("id,package_info,user_id,transfer_status,out_bill_no,create_time,update_time").orderByDesc("create_time"));
-        //配置小程序ID-appid，商户ID-mchId
-        pageInfo.getRecords().forEach(item->{
-            item.setAppId(wxPayV3Bean.getAppId());
-            item.setMchId(wxPayV3Bean.getMchId());
-        });
+        IPage<UmsWithdraw> pageInfo = withdrawService.page(new Page<>(pageNo, pageSize),
+                new QueryWrapper<>(new UmsWithdraw()
+                        .setUserId(user.getId())
+                        .setTransferStatus(BizConstants.TRANSFER_STATUS_WAIT_USER_CONFIRM))
+                        .select("id,package_info,user_id,transfer_status,out_bill_no,create_time,update_time")
+                        .orderByDesc("create_time"));
+        // 拉起前同步微信侧状态：OVERDUE_CLOSE 等终态会解冻并移出待确认队列
+        java.util.List<UmsWithdraw> alive = new java.util.ArrayList<>();
+        for (UmsWithdraw item : pageInfo.getRecords()) {
+            if (oConvertUtils.isEmpty(item.getOutBillNo())) {
+                continue;
+            }
+            try {
+                TransferToUserResponse wx = withdrawService.getTransferByOutBillNo(item.getOutBillNo(), user.getId());
+                if (wx != null && BizConstants.TRANSFER_STATUS_WAIT_USER_CONFIRM.equals(wx.getState())) {
+                    if (oConvertUtils.isNotEmpty(wx.getPackage_info())) {
+                        item.setPackageInfo(wx.getPackage_info());
+                    }
+                    item.setAppId(wxPayV3Bean.getAppId());
+                    item.setMchId(wxPayV3Bean.getMchId());
+                    alive.add(item);
+                }
+            } catch (Exception e) {
+                log.warn("待确认列表查单失败 outBillNo={}", item.getOutBillNo(), e);
+                // 查单失败时仍返回本地数据，避免用户完全看不到入口
+                item.setAppId(wxPayV3Bean.getAppId());
+                item.setMchId(wxPayV3Bean.getMchId());
+                alive.add(item);
+            }
+        }
+        pageInfo.setRecords(alive);
+        pageInfo.setTotal(alive.size());
         return Result.OK(pageInfo);
     }
 

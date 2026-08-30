@@ -25,8 +25,8 @@ spring:
       max-request-size: 10MB
   mail:
     host: smtp.163.com
-    username: ${MAIL_USERNAME:your-mail@example.com}
-    password: ${MAIL_PASSWORD:changeme}
+    username: ??
+    password: ??
     properties:
       mail:
         smtp:
@@ -110,14 +110,14 @@ spring:
         # 初始化大小，最小，最大
         initial-size: 5
         min-idle: 5
-        maxActive: 20
+        maxActive: 1000
         # 配置获取连接等待超时的时间
         maxWait: 60000
         # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
         timeBetweenEvictionRunsMillis: 60000
         # 配置一个连接在池中最小生存的时间，单位是毫秒
         minEvictableIdleTimeMillis: 300000
-        validationQuery: SELECT 1
+        validationQuery: SELECT 1 FROM DUAL
         testWhileIdle: true
         testOnBorrow: false
         testOnReturn: false
@@ -130,13 +130,13 @@ spring:
         connectionProperties: druid.stat.mergeSql\=true;druid.stat.slowSqlMillis\=5000
       datasource:
         master:
-          url: jdbc:mysql://127.0.0.1:3306/job-daily?characterEncoding=UTF-8&useUnicode=true&useSSL=false&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-          username: root
-          password: ${DB_PASSWORD:root}
+          url: jdbc:mysql://43.143.187.71:3389/job-daily?characterEncoding=UTF-8&useUnicode=true&useSSL=false&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: job-daily
+          password: ${DB_PASSWORD:changeme}
           driver-class-name: com.mysql.cj.jdbc.Driver
           # 多数据源配置
           #multi-datasource1:
-          #url: jdbc:mysql://localhost:3306/jeecg-boot2?useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          #url: jdbc:mysql://localhost:3306/job?useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
           #username: root
           #password: root
           #driver-class-name: com.mysql.cj.jdbc.Driver
@@ -159,7 +159,7 @@ mybatis-plus:
       table-underline: true
   configuration:
     # 这个配置会将执行的sql打印出来，在开发或测试的时候可以用
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     # 返回类型为Map,显示null对应的字段
     call-setters-on-nulls: true
 #jeecg专用配置
@@ -172,22 +172,22 @@ jeecg:
   signatureSecret: ${JEECG_SIGNATURE_SECRET:please-change-me-32chars-min}
   # 签名拦截接口
   signUrls: /sys/dict/getDictItems/*,/sys/dict/loadDict/*,/sys/dict/loadDictOrderByValue/*,/sys/dict/loadDictItem/*,/sys/dict/loadTreeData,/sys/api/queryTableDictItemsByCode,/sys/api/queryFilterTableDictInfo,/sys/api/queryTableDictByKeys,/sys/api/translateDictFromTable,/sys/api/translateDictFromTableByKeys
-  #local、minio、alioss
+  #local\minio\alioss
   uploadType: alioss
   #是否测试模式
-  devTest: true
+  devTest: false
   # 前端访问地址
   domainUrl:
     pc: http://localhost:3100
     app: http://localhost:8051
   path:
     #文件上传根目录 设置
-    upload: /opt/upFiles
+    upload: /opt/jeecg-boot/upload
     #webapp文件路径
-    webapp: /opt/webapp
+    webapp: /opt/jeecg-boot/webapp
   shiro:
-    excludeUrls: /test/jeecgDemo/demo3,/test/jeecgDemo/redisDemo/**,/category/**,/visual/**,/map/**,/jmreport/bigscreen2/**
-  #阿里云oss存储
+    excludeUrls: /test/jeecgDemo/demo3,/test/jeecgDemo/redisDemo/**,/category/**,/visual/**,/map/**,/jmreport/bigscreen2/**,/api/getUserInfo
+  #阿里云oss存储和大鱼短信秘钥配置#
   oss:
     accessKey: ${OSS_ACCESS_KEY:}
     secretKey: ${OSS_SECRET_KEY:}
@@ -198,16 +198,12 @@ jeecg:
     accessKey: ${SMS_ACCESS_KEY:}
     secretKey: ${SMS_SECRET_KEY:}
     sdkAppId: ${SMS_SDK_APP_ID:}
-#  sms:
-#    accessKey: YOUR_SMS_ACCESS_KEY
-#    secretKey: YOUR_SMS_SECRET_KEY
-#    sdkAppId: ${SMS_SDK_APP_ID:}
 
-  # ElasticSearch 6设置
+  # ElasticSearch 设置
   elasticsearch:
     cluster-name: jeecg-ES
     cluster-nodes: 127.0.0.1:9200
-    check-enabled: false
+    check-enabled: true
   # 在线预览文件服务器地址配置
   file-view-domain: http://fileview.jeecg.com
   # minio文件上传
@@ -218,9 +214,17 @@ jeecg:
     bucketName: otatest
   #大屏报表参数设置
   jmreport:
-    mode: dev
+    mode: prod
     #数据字典是否进行saas数据隔离，自己看自己的字典
     saas: false
+    #是否开启租户模式 Support By v1.5.5+
+    openTenant: false
+    #安全模式(敏感接口校验、saas模式下不允许使用平台数据源)
+    #safeMode: true
+    #是否需要校验token
+    is_verify_token: true
+    #必须校验方法
+    verify_methods: remove,delete,save,add,update
   #xxl-job配置
   xxljob:
     enabled: false
@@ -240,11 +244,11 @@ jeecg:
     enabled: true
   #微信小程序参数配置
   wx:
-    appId: wxd393831bf6faa2b1
+    appId: wx8eb6df2b696e3e39
     appSecret: ${WX_APP_SECRET:}
   #抖音小程序参数配置
   dy:
-    appId: ttc2d7b46a5de71bb901
+    appId: ttc2d7b46a5xxxxxxxxx
     appSecret: ${DY_APP_SECRET:}
 #cas单点登录
 cas:
@@ -260,7 +264,7 @@ knife4j:
   #开启生产环境屏蔽
   production: false
   basic:
-    enable: false
+    enable: true
     username: jeecg
     password: ${REDISSON_PASSWORD:changeme}
 #第三方登录

@@ -146,4 +146,10 @@ public class UmsWithdraw implements Serializable {
     private String appId;
     @TableField(exist = false)
     private String mchId;
+    /** 当前可提余额（列表展示，非表字段） */
+    @TableField(exist = false)
+    private java.math.BigDecimal accountBalanceWithdraw;
+    /** 当前冻结余额（列表展示，非表字段） */
+    @TableField(exist = false)
+    private java.math.BigDecimal accountBalanceFrozen;
 }

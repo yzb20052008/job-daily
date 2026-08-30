@@ -26,7 +26,6 @@
 </template>
 
 <script>
-	import uploadImage from '@/plugins/ossutil/uploadFile';
 	import BaseUrl from '@/config/baseUrl.js';
 	import {
 		getSmsCode

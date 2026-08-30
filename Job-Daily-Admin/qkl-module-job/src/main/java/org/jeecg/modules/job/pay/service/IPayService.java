@@ -28,6 +28,13 @@ public interface IPayService {
     TransferToUserResponse getTransferByOutBillNo(String outBillNo);
 
     /**
+     * 校验微信商户可用余额是否足够发起转账（单位：元）
+     * @param moneyYuan 提现金额（元）
+     * @throws org.jeecg.common.exception.JeecgBootException 余额不足或无法查询时抛出
+     */
+    void assertMerchantBalanceEnough(BigDecimal moneyYuan);
+
+    /**
      * 转账到零钱
      * @param openId 收款用户openid
      * @param money 转账金额

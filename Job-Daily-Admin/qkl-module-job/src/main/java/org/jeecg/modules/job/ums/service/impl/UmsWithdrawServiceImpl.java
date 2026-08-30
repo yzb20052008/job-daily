@@ -193,6 +193,17 @@ public class UmsWithdrawServiceImpl extends ServiceImpl<UmsWithdrawMapper, UmsWi
                     && !BizConstants.ACCOUNT_TYPE_WX.equals(umsWithdraw.getAccountType())) {
                 throw new BizException(BizErrorCodes.WITHDRAW_CHANNEL_UNSUPPORTED);
             }
+            // 先查微信商户余额（避免持行锁期间调外部接口）
+            payService.assertMerchantBalanceEnough(umsWithdraw.getMoney());
+            // 审核通过必须以「已冻结金额」为准：申请时已从可提余额划入冻结，不可再用可提余额判断
+            UmsAccount account = accountService.lockByUserId(umsWithdraw.getUserId());
+            BigDecimal frozen = account.getBalanceFrozen() == null ? BigDecimal.ZERO : account.getBalanceFrozen();
+            if (frozen.compareTo(umsWithdraw.getMoney()) < 0) {
+                throw new BizException(BizErrorCodes.WITHDRAW_FROZEN_SHORT.getCode(),
+                        "冻结余额不足（当前冻结" + frozen.stripTrailingZeros().toPlainString()
+                                + "元，本单" + umsWithdraw.getMoney().stripTrailingZeros().toPlainString()
+                                + "元），请先核对账户后再审，禁止在资金未冻结时放行");
+            }
             // CAS：仅待审 → 审核通过；微信转账在事务外 initiateTransfer
             boolean cas = this.update(new UpdateWrapper<UmsWithdraw>()
                     .eq("id", id)

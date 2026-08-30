@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="content">
 		<view class="search">
 			<u-search :placeholder="placeholder" v-model="searchValue" bgColor="#fff" :clearabled="true"
@@ -18,7 +18,7 @@
 					<text class="text-size-mim">{{ item }}</text>
 				</view>
 				<view class="history-none" style="margin-top: 20upx;" v-if="searchRecentList.length == 0">
-					<u-empty mode="data" icon="https://img.qinkonglan.cn/imgs/data.jpg"></u-empty>
+					<u-empty mode="data" icon="https://cdn.example.com/imgs/data.jpg"></u-empty>
 				</view>
 			</view>
 		</view>

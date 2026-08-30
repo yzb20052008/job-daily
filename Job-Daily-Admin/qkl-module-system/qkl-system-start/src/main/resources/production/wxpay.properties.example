@@ -1,0 +1,9 @@
+# 微信支付 V2 配置示例（复制为 wxpay.properties 后填写）
+# 真实生产文件请放在仓库根目录 private/config/pay/（已 gitignore）
+
+wxpay.appId=your-wx-appid
+wxpay.appSecret=your-wx-app-secret
+wxpay.mchId=your-mch-id
+wxpay.partnerKey=your-partner-key
+wxpay.certPath=/path/to/apiclient_cert.p12
+wxpay.domain=https://api.example.com/

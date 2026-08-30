@@ -194,25 +194,8 @@ public class WechatApiService {
     }
 
     public static void main(String[] args) throws Exception {
-        String appid = "wxb7e1271186379b78";
-        String secret = "875a7ab86c5ca65f505501930bf55885";
-        WechatApiService apiService = new WechatApiService();
-//        String token=apiService.getAccessToken();
-//        System.err.println("token===="+token);
-//        String text="有违规文字内容测试特3456书yuuo莞6543李zxcz蒜7782法fgnv级";
-//        String text="习近平";
-        String text="13612365353";
-//        String text="法轮功";
-//        boolean result = apiService.checkText(text);
-//        System.err.println("result====" + result);
-
-        Map<String, Object> data =apiService.getCodeImg(2L);
-        String qrBytesEncoder = (String) data.get("qrBytesEncoder");
-        Integer qrLength = (Integer) data.get("qrLength");
-        System.out.println(qrBytesEncoder);
-        System.out.println(qrLength);
-        byte[] qrBytes = (byte[]) data.get("qrBytes");
-        saveToImg("d://qrcode.png",qrBytes);
+        // 本地调试请从配置读取 appId/secret，禁止在源码中硬编码密钥
+        throw new UnsupportedOperationException("请使用单元测试或临时本地脚本调试，勿提交密钥");
     }
 
 }

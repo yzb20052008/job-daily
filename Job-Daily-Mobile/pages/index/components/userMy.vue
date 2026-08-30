@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="content">
 		<public-module></public-module>
 		<view class="header">

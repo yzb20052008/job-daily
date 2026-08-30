@@ -101,3 +101,41 @@ coverage/
 # 前端本地私有配置（不影响项目业务配置）
 config.local.js
 config.local.json
+# ======================
+# 非开源 / 本地真实配置（模板用 *.example 提交）
+# ======================
+# 可选个人备份目录（勿把全部密钥只堆这里）
+/private/
+!/private/README.md
+
+# 后端本地真实配置
+**/qkl-system-start/src/main/resources/application-dev.yml
+**/qkl-system-start/src/main/resources/application-prod.yml
+
+# 支付生产 properties 真实文件（保留 *.example）
+**/production/wxpay.properties
+**/production/wxpay_v3.properties
+**/production/alipay.properties
+
+# 证书与私钥
+**/*.pem
+**/*.p12
+**/*.pfx
+**/*.jks
+**/cert/
+
+# 移动端本地真实域名配置（保留 baseUrl.js.example）
+Job-Daily-Mobile/config/baseUrl.js
+Job-Daily-Mobile/config/baseUrl.local.js
+# 兼容旧文件名，避免误提交
+Job-Daily-Mobile/config/baseUrl-example.js
+
+# 管理端本地环境（保留 .env.*.example；.env 无密钥可保留入库）
+Job-Daily-Web/.env.development
+Job-Daily-Web/.env.production
+Job-Daily-Web/.env.local
+Job-Daily-Web/.env.*.local
+
+# 历史全量库 dump（体积大且可能含业务数据）
+Job-Daily-Admin/db/qkl-job.sql
+Job-Daily-Admin/db/job-daily.sql

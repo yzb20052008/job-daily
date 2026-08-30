@@ -27,44 +27,8 @@ public class TransferToUser {
     private static String PATH = "/v3/fund-app/mch-transfer/transfer-bills";
 
     public static void main(String[] args) {
-        // TODO: 请准备商户开发必要参数，参考：https://pay.weixin.qq.com/doc/v3/merchant/4013070756
-        TransferToUser client = new TransferToUser(
-                "1632349884",                    // 商户号，是由微信支付系统生成并分配给每个商户的唯一标识符，商户号获取方式参考 https://pay.weixin.qq.com/doc/v3/merchant/4013070756
-                "628F1A8218AF21336C65CA15D1F2B1E376978F5D",         // 商户API证书序列号，如何获取请参考 https://pay.weixin.qq.com/doc/v3/merchant/4013053053
-                "D:/cert/qkl/apiclient_key.pem",     // 商户API证书私钥文件路径，本地文件路径
-                "PUB_KEY_ID_0116323498842025110300112294000802",      // 微信支付公钥ID，如何获取请参考 https://pay.weixin.qq.com/doc/v3/merchant/4013038816
-                "D:/cert/qkl/pub_key.pem"           // 微信支付公钥文件路径，本地文件路径
-        );
-
-        TransferToUserRequest request = new TransferToUserRequest();
-        request.appid = "wx8eb6df2b696e3e39";
-        request.outBillNo = "plfk2020042013";
-        request.transferSceneId = "1005";
-        request.openid = "oAG2m7UjmKiNU3li2pg4TZENhCZs";
-        request.userName = client.encrypt("易祖柏");
-        request.transferAmount = 400000L;
-        request.transferRemark = "新会员开通有礼";
-        request.notifyUrl = "https://www.weixin.qq.com/wxpay/pay.php";
-        request.userRecvPerception = "现金奖励";
-        request.transferSceneReportInfos = new ArrayList<>();
-        {
-            TransferSceneReportInfo transferSceneReportInfosItem0 = new TransferSceneReportInfo();
-            transferSceneReportInfosItem0.infoType = "活动名称";
-            transferSceneReportInfosItem0.infoContent = "新会员有礼";
-            request.transferSceneReportInfos.add(transferSceneReportInfosItem0);
-            TransferSceneReportInfo transferSceneReportInfosItem1 = new TransferSceneReportInfo();
-            transferSceneReportInfosItem1.infoType = "奖励说明";
-            transferSceneReportInfosItem1.infoContent = "注册会员抽奖一等奖";
-            request.transferSceneReportInfos.add(transferSceneReportInfosItem1);
-        };
-        try {
-            TransferToUserResponse response = client.run(request);
-            // TODO: 请求成功，继续业务逻辑
-            System.out.println(response);
-        } catch (WXPayUtility.ApiException e) {
-            // TODO: 请求失败，根据状态码执行不同的逻辑
-            e.printStackTrace();
-        }
+        // 示例入口：请从环境变量或 private 配置读取，禁止提交真实商户号/证书/用户信息
+        throw new UnsupportedOperationException("请使用 PayService.transferNew 与私有配置联调，勿在源码中硬编码凭证");
     }
 
     public TransferToUserResponse run(TransferToUserRequest request) {

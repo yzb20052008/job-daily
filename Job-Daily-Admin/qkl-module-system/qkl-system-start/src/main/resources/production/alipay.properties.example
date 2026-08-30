@@ -1,0 +1,11 @@
+# 支付宝配置示例（复制为 alipay.properties 后填写）
+# 真实生产文件请放在 private/config/pay/
+
+alipay.appId=your-alipay-appid
+alipay.privateKey=your-app-private-key
+alipay.publicKey=alipay-public-key
+alipay.appCertPath=/path/to/appCertPublicKey.crt
+alipay.aliPayCertPath=/path/to/alipayCertPublicKey_RSA2.crt
+alipay.aliPayRootCertPath=/path/to/alipayRootCert.crt
+alipay.serverUrl=https://openapi.alipay.com/gateway.do
+alipay.domain=https://api.example.com/

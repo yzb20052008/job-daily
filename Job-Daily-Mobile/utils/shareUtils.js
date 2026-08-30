@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 微信小程序分享工具类
  * 支持分享给好友和分享到朋友圈
  */
@@ -16,9 +16,9 @@ class ShareUtils {
      */
     static setPageShare(options = {}) {
         const defaultOptions = {
-            title: baseUrl.share.title || '小蓝直聘',
+            title: baseUrl.share.title || '小蓝零工',
             path: '/pages/index/index',
-            imageUrl: 'https://img.qinkonglan.cn/imgs/share-zp.png',
+            imageUrl: 'https://cdn.example.com/imgs/share-zp.png',
             query: ''
         }
         
@@ -45,7 +45,7 @@ class ShareUtils {
      * @param {Object} jobInfo 职位信息
      */
     static setJobShare(jobInfo) {
-        const title = `【${jobInfo.title}】${jobInfo.salary || '面议'} - 小蓝直聘`
+        const title = `【${jobInfo.title}】${jobInfo.salary || '面议'} - 小蓝零工`
         const path = `/pages/job/postDetail?id=${jobInfo.id}`
         const query = `id=${jobInfo.id}`
         
@@ -61,7 +61,7 @@ class ShareUtils {
      * @param {Object} companyInfo 公司信息
      */
     static setCompanyShare(companyInfo) {
-        const title = `【${companyInfo.name}】正在招聘 - 小蓝直聘`
+        const title = `【${companyInfo.name}】正在招聘 - 小蓝零工`
         const path = `/pages/company/detail?id=${companyInfo.id}`
         const query = `id=${companyInfo.id}`
         
@@ -77,7 +77,7 @@ class ShareUtils {
      * @param {Object} userInfo 用户信息
      */
     static setInviteShare(userInfo) {
-        const title = '真实招聘，高效上岗 - 小蓝直聘'
+        const title = '真实招聘，高效上岗 - 小蓝零工'
         const path = `/pages/index/index?referrer=${userInfo.id}`
         const query = `referrer=${userInfo.id}`
         
@@ -93,7 +93,7 @@ class ShareUtils {
      * @param {Object} resumeInfo 简历信息
      */
     static setResumeShare(resumeInfo) {
-        const title = `【${resumeInfo.name}】的简历 - 小蓝直聘`
+        const title = `【${resumeInfo.name}】的简历 - 小蓝零工`
         const path = `/pages/resume/detail?id=${resumeInfo.id}`
         const query = `id=${resumeInfo.id}`
         

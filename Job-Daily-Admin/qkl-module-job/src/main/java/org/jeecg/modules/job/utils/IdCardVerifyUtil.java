@@ -9,31 +9,35 @@ import com.tencentcloudapi.faceid.v20180301.FaceidClient;
 import com.tencentcloudapi.faceid.v20180301.models.IdCardVerificationRequest;
 import com.tencentcloudapi.faceid.v20180301.models.IdCardVerificationResponse;
 
+/**
+ * 腾讯云身份证实名核验工具。
+ * 密钥与证件号请走配置中心/环境变量，禁止在源码中硬编码。
+ */
 public class IdCardVerifyUtil {
-    public static void main(String [] args) {
-        try{
-            // 实例化一个认证对象，入参需要传入腾讯云账户 SecretId 和 SecretKey，此处还需注意密钥对的保密
-            // 代码泄露可能会导致 SecretId 和 SecretKey 泄露，并威胁账号下所有资源的安全性。以下代码示例仅供参考，建议采用更安全的方式来使用密钥，请参见：https://cloud.tencent.com/document/product/1278/85305
-            // 密钥可前往官网控制台 https://console.cloud.tencent.com/cam/capi 进行获取
-            Credential cred = new Credential("AKIDzsb7UjttiLr09FG7wudqy20oTyfDi700", "52vhMrDORL5vdCdv8FHKJAsRtHY6eUKR");
-            // 实例化一个http选项，可选的，没有特殊需求可以跳过
-            HttpProfile httpProfile = new HttpProfile();
-            httpProfile.setEndpoint("faceid.tencentcloudapi.com");
-            // 实例化一个client选项，可选的，没有特殊需求可以跳过
-            ClientProfile clientProfile = new ClientProfile();
-            clientProfile.setHttpProfile(httpProfile);
-            // 实例化要请求产品的client对象,clientProfile是可选的
-            FaceidClient client = new FaceidClient(cred, "", clientProfile);
-            // 实例化一个请求对象,每个接口都会对应一个request对象
-            IdCardVerificationRequest req = new IdCardVerificationRequest();
-            req.setIdCard("360782198809121319");
-            req.setName("易祖柏");
-            // 返回的resp是一个IdCardVerificationResponse的实例，与请求对象对应
-            IdCardVerificationResponse resp = client.IdCardVerification(req);
-            // 输出json格式的字符串回包
-            System.out.println(AbstractModel.toJsonString(resp));
-        } catch (TencentCloudSDKException e) {
-            System.out.println(e.toString());
-        }
+
+    /**
+     * 核验身份证姓名是否一致
+     *
+     * @param secretId  腾讯云 SecretId
+     * @param secretKey 腾讯云 SecretKey
+     * @param idCard    身份证号
+     * @param name      姓名
+     */
+    public static IdCardVerificationResponse verify(String secretId, String secretKey, String idCard, String name)
+            throws TencentCloudSDKException {
+        Credential cred = new Credential(secretId, secretKey);
+        HttpProfile httpProfile = new HttpProfile();
+        httpProfile.setEndpoint("faceid.tencentcloudapi.com");
+        ClientProfile clientProfile = new ClientProfile();
+        clientProfile.setHttpProfile(httpProfile);
+        FaceidClient client = new FaceidClient(cred, "", clientProfile);
+        IdCardVerificationRequest req = new IdCardVerificationRequest();
+        req.setIdCard(idCard);
+        req.setName(name);
+        return client.IdCardVerification(req);
+    }
+
+    public static void main(String[] args) {
+        throw new UnsupportedOperationException("请传入环境变量中的密钥与测试证件信息，勿在源码中硬编码");
     }
 }

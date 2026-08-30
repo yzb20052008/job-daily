@@ -1,0 +1,12 @@
+# 微信支付 V3 / 商家转账配置示例（复制为 wxpay_v3.properties 后填写）
+# 真实生产文件请放在 private/config/pay/
+
+v3.appId=your-wx-appid
+v3.keyPath=/path/to/apiclient_key.pem
+v3.certPath=/path/to/apiclient_cert.pem
+v3.certP12Path=/path/to/apiclient_cert.p12
+v3.platformCertPath=/path/to/wx_platform_cert.pem
+v3.mchId=your-mch-id
+v3.apiKey3=your-api-v3-key-32chars
+v3.apiKey=your-api-key
+v3.domain=https://api.example.com/

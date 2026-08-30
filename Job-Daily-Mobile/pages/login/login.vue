@@ -621,7 +621,8 @@
 			text-align: center;
 			width: 100%;
 			height: 480upx;
-			// background-image: url('https://gzqkl.oss-cn-hangzhou.aliyuncs.com/sxkp/common/login-bg.png');;
+			// background-image: url('https://cdn.example.com/common/login-bg.png');
+
 		}
 
 		.logo {

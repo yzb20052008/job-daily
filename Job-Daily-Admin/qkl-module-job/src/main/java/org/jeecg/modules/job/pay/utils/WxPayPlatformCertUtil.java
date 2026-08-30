@@ -57,19 +57,9 @@ public class WxPayPlatformCertUtil {
         Security.addProvider(new BouncyCastleProvider());
     }
 
-    public static void main(String[] args) throws Exception{
-//        v3.appId=wx8eb6df2b696e3e39
-//        v3.keyPath=D:/cert/apiclient_key.pem
-//        v3.certPath=D:/cert/qkl/apiclient_cert.pem
-//        v3.certP12Path=D:/cert/qkl/apiclient_cert.p12
-//        v3.platformCertPath=D:/cert/qkl/wx_cert.pem
-//        v3.mchId=1632349884
-//        v3.apiKey3=asdfasdfaw23asdfdfsdfgsdfgsdfgsd
-//        v3.apiKey=asdfasdfaw23asdfdfsdfgsdfgsdfgsd
-//        v3.domain=https://lgapi.qinkonglan.cn/
-        WxPayPlatformCertUtil util= new WxPayPlatformCertUtil("wx8eb6df2b696e3e39","asdfasdfaw23asdfdfsdfgsdfgsdfgsd",
-                "D:/cert/apiclient_key.pem","D:/cert/qkl/apiclient_cert.pem","D:/cert/qkl/wx_cert.pem");
-        util.fetchAndSavePlatformCert();
+    public static void main(String[] args) throws Exception {
+        // 本地拉取平台证书时请从环境变量或 private 配置读取，禁止提交真实商户号/密钥
+        throw new UnsupportedOperationException("请使用本地私有配置运行，勿在源码中硬编码商户凭证");
     }
 
     /**

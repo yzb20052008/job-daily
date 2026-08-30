@@ -1,4 +1,4 @@
-<!-- 菜单悬浮的原理: 监听滚动条的位置大于某个值时,控制顶部菜单的显示和隐藏, 用法比sticky复杂, 但APP端可兼容低端机 -->
+﻿<!-- 菜单悬浮的原理: 监听滚动条的位置大于某个值时,控制顶部菜单的显示和隐藏, 用法比sticky复杂, 但APP端可兼容低端机 -->
 <template>
 	<view>
 		<public-module></public-module>
@@ -31,11 +31,15 @@
 							:multiple="true" :maxCount="3"></u-upload>
 					</u-form-item>
 					<text class="tips">拍摄工地照片，可以为后续可能的纠纷提供法律依据</text>
-					<u-form-item label="当前位置" labelPosition="top" prop="address" required>
-						<u-input placeholder="正在获取当前位置" border="none" readonly v-model="form.address" />
+					<u-form-item label="工作位置" labelPosition="top" prop="address" required>
+						<u-input placeholder="工作地点" border="none" readonly v-model="form.address" />
 					</u-form-item>
-					<text class="tips">工作点 <text class="distance">{{clockRange}}</text> 米内才能打卡，当前距工作点：<text
-							class="distance">{{form.distance}}</text>米</text>
+					<u-form-item label="当前距离" labelPosition="top">
+						<view class="distance-row">
+							<text class="distance-value">{{ distanceText }}</text>
+							<text class="distance-hint">（允许 {{clockRange}} 米内打卡）</text>
+						</view>
+					</u-form-item>
 				</u-form>
 				<view class="pop-btn">
 					<view class="btn">
@@ -65,10 +69,20 @@
 	export default {
 		mixins: [MescrollMixin], // 使用mixin
 		computed: {
-			...mapState(['userInfo', 'locateInformation']),
+			...mapState(['userInfo', 'locateInformation', 'lastLocation']),
 			// 列表数据
 			list() {
 				return this.tabs[this.tabIndex].list || [];
+			},
+			distanceText() {
+				if (this.form.latitude === '' || this.form.latitude == null) {
+					return '定位中…';
+				}
+				const d = Number(this.form.distance);
+				if (isNaN(d)) {
+					return '—';
+				}
+				return '距工作点 ' + Math.round(d) + ' 米';
 			}
 		},
 		data() {
@@ -94,7 +108,7 @@
 					textNoMore: '-- 没有更多 --',
 					empty: {
 						tip: '空空如也', // 提示
-						icon: 'https://img.qinkonglan.cn/imgs/data.jpg'
+						icon: 'https://cdn.example.com/imgs/data.jpg'
 					}
 				},
 				//订单状态：0-待确认，1-待开工，2-工作中，3-待结算，4-待评价，5-已完成,6-已取消
@@ -200,7 +214,7 @@
 					}],
 					address: [{
 						required: true,
-						message: '当前位置不能为空',
+						message: '工作位置不能为空',
 						trigger: ['blur', 'change']
 					}],
 				}
@@ -384,6 +398,10 @@
 				this.popTitle = "上班打卡";
 				this.currentItem = item;
 				this.currentItem.index = index;
+				this.form.address = item.addressName || item.address || '工作地点';
+				this.form.distance = 0;
+				this.form.latitude = '';
+				this.form.longitude = '';
 				this.show = true;
 				this.getLocation();
 			},
@@ -393,6 +411,10 @@
 				this.popTitle = "下班打卡";
 				this.currentItem = item;
 				this.currentItem.index = index;
+				this.form.address = item.addressName || item.address || '工作地点';
+				this.form.distance = 0;
+				this.form.latitude = '';
+				this.form.longitude = '';
 				this.show = true;
 				this.getLocation();
 			},
@@ -462,7 +484,8 @@
 					return;
 				}
 				if (!this.form.address) {
-					this.form.address = '当前位置（地址解析暂不可用）';
+					this.form.address = (this.currentItem && (this.currentItem.addressName || this.currentItem.address))
+						|| '工作地点';
 				}
 				if (this.form.latitude === '' || this.form.latitude == null) {
 					uni.$u.toast('未获取到定位坐标，请开启位置权限');
@@ -539,6 +562,9 @@
 						url: BaseUrl.baseUrl + "/api/file/upload",
 						filePath: url,
 						name: 'file',
+						header: {
+							'X-Access-Token': (uni.getStorageSync('userInfo') && uni.getStorageSync('userInfo').token) || ''
+						},
 						formData: {
 							biz: "job/work"
 						},
@@ -557,31 +583,37 @@
 
 			getLocation() {
 				console.log('============getLocation==============');
-				// 打卡需要地址展示：purpose=address，短距/短时复用逆地理；失败有默认文案
+				// 打卡只需坐标算距离，不依赖逆地理；展示工作位置来自岗位
 				loGetLocation(
 					res => {
-						console.log('locateInformation', this.locateInformation);
 						const location = (res && res.location) || {};
 						const lat = location.lat != null ? location.lat : res.latitude;
 						const lng = location.lng != null ? location.lng : res.longitude;
-						this.form.address = (res && res.address) || '当前位置（地址解析暂不可用）';
 						this.form.latitude = lat;
 						this.form.longitude = lng;
-						if (this.currentItem && this.currentItem.latitude != null) {
+						// 留痕地址固定为工作位置，不改写为当前位置解析结果
+						if (!this.form.address) {
+							this.form.address = (this.currentItem && (this.currentItem.addressName || this.currentItem.address))
+								|| '工作地点';
+						}
+						if (this.currentItem && this.currentItem.latitude != null && this.currentItem.longitude != null
+							&& lat != null && lng != null) {
 							this.form.distance = getDistance(
 								this.currentItem.latitude,
 								this.currentItem.longitude,
-								this.form.latitude,
-								this.form.longitude
+								lat,
+								lng
 							);
+						} else {
+							this.form.distance = 0;
+							uni.$u.toast('岗位未设置坐标，无法校验距离');
 						}
 					},
 					err => {
 						console.log('err==', err);
-						this.form.address = this.form.address || '当前位置（定位失败，请检查权限）';
 						uni.$u.toast('定位失败，请开启位置权限后重试');
 					},
-					{ purpose: 'address', isOpenSetting: true }
+					{ purpose: 'coord', isOpenSetting: true }
 				);
 			},
 
@@ -754,6 +786,26 @@
 			.btn {
 				flex: 1;
 			}
+		}
+
+		.distance-row {
+			display: flex;
+			flex-direction: row;
+			align-items: baseline;
+			flex-wrap: wrap;
+			padding: 8upx 0 16upx;
+		}
+
+		.distance-value {
+			font-size: 18px;
+			font-weight: bold;
+			color: #e54d42;
+		}
+
+		.distance-hint {
+			font-size: 13px;
+			color: #999;
+			margin-left: 12upx;
 		}
 	}
 </style>

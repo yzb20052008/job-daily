@@ -199,7 +199,7 @@ public class JobPostController extends JeecgController<JobPost, IJobPostService>
         return super.importExcel(request, response, JobPost.class);
     }
 
-	@ApiOperation(value = "地图Key", notes = "后台地图选点组件使用，不下发 map_sk")
+	@ApiOperation(value = "地图Key", notes = "后台地图选点组件使用，仅下发 map_key")
 	@GetMapping(value = "/mapConfig")
 	public Result<Map<String, String>> mapConfig() {
 		Map<String, String> data = new LinkedHashMap<>();
